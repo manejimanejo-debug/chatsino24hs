@@ -46,7 +46,6 @@
 
       width: 100vw;
       height: 100vh;
-
       height: 100dvh;
 
       font-family:
@@ -473,55 +472,118 @@
 
     }
 
-  
+
     /* =====================================================
        NOTIFICACIONES PUSH
     ===================================================== */
+
     #push-notification-button {
+
       position: fixed;
+
       right: 18px;
       bottom: 18px;
+
       z-index: 100000000;
-      border: 1px solid rgba(212,175,55,.55);
+
+      border:
+        1px solid
+        rgba(212,175,55,.55);
+
       border-radius: 999px;
+
       padding: 11px 16px;
-      background: rgba(17,21,26,.96);
-      color: #D4AF37;
-      font-family: Arial, Helvetica, sans-serif;
+
+      background:
+        rgba(17,21,26,.96);
+
+      color:
+        #D4AF37;
+
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
       font-size: 13px;
+
       font-weight: 700;
+
       cursor: pointer;
+
       box-shadow:
-        0 8px 25px rgba(0,0,0,.35),
-        0 0 18px rgba(212,175,55,.12);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      transition: transform .15s ease, opacity .2s ease, border-color .2s ease;
+
+        0 8px 25px
+        rgba(0,0,0,.35),
+
+        0 0 18px
+        rgba(212,175,55,.12);
+
+      backdrop-filter:
+        blur(8px);
+
+      -webkit-backdrop-filter:
+        blur(8px);
+
+      transition:
+
+        transform .15s ease,
+        opacity .2s ease,
+        border-color .2s ease;
+
     }
+
 
     #push-notification-button:hover {
-      transform: translateY(-1px);
-      border-color: #D4AF37;
+
+      transform:
+        translateY(-1px);
+
+      border-color:
+        #D4AF37;
+
     }
+
 
     #push-notification-button:disabled {
-      cursor: default;
-      opacity: .72;
+
+      cursor:
+        default;
+
+      opacity:
+        .72;
+
     }
+
 
     #push-notification-button.push-enabled {
-      color: #111111;
-      background: #D4AF37;
-      border-color: #D4AF37;
+
+      color:
+        #111111;
+
+      background:
+        #D4AF37;
+
+      border-color:
+        #D4AF37;
+
     }
 
+
     @media (max-width: 768px) {
+
       #push-notification-button {
+
         right: 12px;
+
         bottom: 12px;
+
         font-size: 12px;
+
         padding: 10px 14px;
+
       }
+
     }
 
   </style>
@@ -535,16 +597,7 @@
 
     window.crmPluginConfig = {
 
-      /*
-       * No mostrar botón flotante
-       */
-
       hidden: true,
-
-
-      /*
-       * CHAT A PANTALLA COMPLETA
-       */
 
       onlinechat: {
 
@@ -552,11 +605,6 @@
 
         container:
           '#custom_chat_holder',
-
-
-        /* =================================================
-           IDIOMA
-        ================================================= */
 
         locale: {
 
@@ -592,32 +640,13 @@
         },
 
 
-        /* =================================================
-           TEMA OROPURO
-        ================================================= */
-
         theme: {
-
-
-          /*
-           * FONDO GENERAL
-           */
 
           background:
             '#0B0D10',
 
-
-          /*
-           * FECHAS Y ESTADOS
-           */
-
           system_color:
             '#D4AF37',
-
-
-          /*
-           * HEADER
-           */
 
           header: {
 
@@ -629,28 +658,13 @@
 
           },
 
-
-          /*
-           * MENSAJES
-           */
-
           message: {
-
-
-            /*
-             * CLIENTE
-             */
 
             outgoing_background:
               '#D4AF37',
 
             outgoing_color:
               '#111111',
-
-
-            /*
-             * KOMMO / OPERADOR
-             */
 
             incoming_background:
               '#1C2229',
@@ -659,11 +673,6 @@
               '#F5F5F5'
 
           },
-
-
-          /*
-           * CAMPO DE ESCRITURA
-           */
 
           compose: {
 
@@ -687,13 +696,18 @@
 
 <body>
 
+
   <!-- =====================================================
        BOTÓN DE NOTIFICACIONES PUSH
-  ===================================================== -->
-  <button id="push-notification-button" type="button" aria-label="Activar notificaciones">
+    ===================================================== -->
+
+  <button
+    id="push-notification-button"
+    type="button"
+    aria-label="Activar notificaciones"
+  >
     🔔 Activar notificaciones
   </button>
-
 
 
   <!-- =====================================================
@@ -706,14 +720,11 @@
       OROPURO
     </div>
 
-
     <div class="loading-text">
       Conectando con atención online
     </div>
 
-
     <div class="loader"></div>
-
 
     <div class="dots">
       • • •
@@ -821,7 +832,6 @@
       setInterval(
         function() {
 
-
           attempts++;
 
 
@@ -829,7 +839,6 @@
             typeof window.crmPlugin ===
             'function'
           ) {
-
 
             try {
 
@@ -859,7 +868,6 @@
             );
 
           }
-
 
         },
 
@@ -892,7 +900,6 @@
       new MutationObserver(
         function() {
 
-
           const iframe =
             chatHolder.querySelector(
               'iframe'
@@ -900,7 +907,6 @@
 
 
           if (iframe) {
-
 
             setTimeout(
               function() {
@@ -940,11 +946,6 @@
     );
 
 
-    /*
-     * Seguridad:
-     * máximo 15 segundos
-     */
-
     setTimeout(
 
       function() {
@@ -962,177 +963,432 @@
   </script>
 
 
-
   <!-- =====================================================
        NOTIFICACIONES PUSH
-       VAPID PUBLIC KEY
-  ===================================================== -->
+    ===================================================== -->
+
   <script>
+
     (() => {
-      const VAPID_PUBLIC_KEY = "BGOrC2lpj8GwRTZHmB7GCBWLMNU04_BCJDGZtGcQIPUsDThO5QAbLL-qINYY4AyrGqlLqhQvCl_YzwyxVWiUATU";
-      const button = document.getElementById("push-notification-button");
+
+      const VAPID_PUBLIC_KEY =
+        "BGOrC2lpj8GwRTZHmB7GCBWLMNU04_BCJDGZtGcQIPUsDThO5QAbLL-qINYY4AyrGqlLqhQvCl_YzwyxVWiUATU";
+
+
+      const button =
+        document.getElementById(
+          "push-notification-button"
+        );
+
 
       if (!button) return;
 
-      function urlBase64ToUint8Array(base64String) {
-        const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-        const base64 = (base64String + padding)
+
+      function urlBase64ToUint8Array(
+        base64String
+      ) {
+
+        const padding =
+          "=".repeat(
+            (4 - (base64String.length % 4)) % 4
+          );
+
+
+        const base64 =
+          (
+            base64String + padding
+          )
           .replace(/-/g, "+")
           .replace(/_/g, "/");
 
-        const rawData = atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
 
-        for (let i = 0; i < rawData.length; ++i) {
-          outputArray[i] = rawData.charCodeAt(i);
+        const rawData =
+          atob(base64);
+
+
+        const outputArray =
+          new Uint8Array(
+            rawData.length
+          );
+
+
+        for (
+          let i = 0;
+          i < rawData.length;
+          ++i
+        ) {
+
+          outputArray[i] =
+            rawData.charCodeAt(i);
+
         }
+
 
         return outputArray;
+
       }
+
 
       function getClientId() {
-        let clientId = localStorage.getItem("open24hs_client_id");
+
+        let clientId =
+          localStorage.getItem(
+            "open24hs_client_id"
+          );
+
 
         if (!clientId) {
-          clientId =
-            (crypto.randomUUID
-              ? crypto.randomUUID()
-              : "client_" + Date.now() + "_" + Math.random().toString(36).slice(2));
 
-          localStorage.setItem("open24hs_client_id", clientId);
+          clientId =
+            (
+              crypto.randomUUID
+              ? crypto.randomUUID()
+              : "client_" +
+                Date.now() +
+                "_" +
+                Math.random()
+                  .toString(36)
+                  .slice(2)
+            );
+
+
+          localStorage.setItem(
+            "open24hs_client_id",
+            clientId
+          );
+
         }
+
 
         return clientId;
+
       }
+
 
       function setButtonEnabledState() {
-        button.textContent = "🔔 Notificaciones activadas";
-        button.classList.add("push-enabled");
-        button.disabled = true;
+
+        button.textContent =
+          "✓ Notificaciones activadas";
+
+
+        button.classList.add(
+          "push-enabled"
+        );
+
+
+        button.disabled =
+          true;
+
       }
 
+
       async function registerPush() {
-        if (!("serviceWorker" in navigator)) {
-          throw new Error("Este navegador no soporta Service Worker.");
+
+        if (
+          !("serviceWorker" in navigator)
+        ) {
+
+          throw new Error(
+            "Este navegador no soporta Service Worker."
+          );
+
         }
 
-        if (!("PushManager" in window)) {
-          throw new Error("Este navegador no soporta notificaciones Push.");
+
+        if (
+          !("PushManager" in window)
+        ) {
+
+          throw new Error(
+            "Este navegador no soporta notificaciones Push."
+          );
+
         }
 
-        if (!("Notification" in window)) {
-          throw new Error("Este navegador no soporta notificaciones.");
+
+        if (
+          !("Notification" in window)
+        ) {
+
+          throw new Error(
+            "Este navegador no soporta notificaciones."
+          );
+
         }
 
-        if (location.protocol !== "https:" && location.hostname !== "localhost") {
-          throw new Error("Las notificaciones requieren HTTPS.");
+
+        if (
+          location.protocol !== "https:" &&
+          location.hostname !== "localhost"
+        ) {
+
+          throw new Error(
+            "Las notificaciones requieren HTTPS."
+          );
+
         }
 
-        const permission = await Notification.requestPermission();
 
-        if (permission !== "granted") {
-          if (permission === "denied") {
-            throw new Error("Las notificaciones fueron bloqueadas en el navegador.");
+        const permission =
+          await Notification.requestPermission();
+
+
+        if (
+          permission !== "granted"
+        ) {
+
+          if (
+            permission === "denied"
+          ) {
+
+            throw new Error(
+              "Las notificaciones fueron bloqueadas en el navegador."
+            );
+
           }
 
-          throw new Error("No se concedió permiso para las notificaciones.");
+
+          throw new Error(
+            "No se concedió permiso para las notificaciones."
+          );
+
         }
 
-        const registration = await navigator.serviceWorker.register(
-          "/service-worker.js",
-          { scope: "/" }
-        );
+
+        const registration =
+          await navigator.serviceWorker.register(
+            "/service-worker.js",
+            {
+              scope: "/"
+            }
+          );
+
 
         await navigator.serviceWorker.ready;
 
-        let subscription = await registration.pushManager.getSubscription();
+
+        let subscription =
+          await registration
+            .pushManager
+            .getSubscription();
+
 
         if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-          });
+
+          subscription =
+            await registration
+              .pushManager
+              .subscribe({
+
+                userVisibleOnly:
+                  true,
+
+                applicationServerKey:
+                  urlBase64ToUint8Array(
+                    VAPID_PUBLIC_KEY
+                  )
+
+              });
+
         }
 
-        const response = await fetch("/api/push/subscribe", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            client_id: getClientId(),
-            subscription: subscription.toJSON()
-          })
-        });
+
+        const response =
+          await fetch(
+            "/api/push/subscribe",
+            {
+
+              method:
+                "POST",
+
+              headers: {
+
+                "Content-Type":
+                  "application/json"
+
+              },
+
+              body:
+                JSON.stringify({
+
+                  client_id:
+                    getClientId(),
+
+                  subscription:
+                    subscription.toJSON()
+
+                })
+
+            }
+          );
+
 
         let result = null;
 
+
         try {
-          result = await response.json();
-        } catch (_) {
-          // Si el backend devuelve una respuesta no-JSON, abajo mostramos
-          // igualmente un error útil.
+
+          result =
+            await response.json();
+
         }
 
-        if (!response.ok || !result || result.ok !== true) {
-          throw new Error(
-            (result && result.error) ||
-            "El servidor no pudo guardar la suscripción."
-          );
+        catch (_) {
+
+          // Respuesta no JSON.
+
         }
+
+
+        if (
+          !response.ok ||
+          !result ||
+          result.ok !== true
+        ) {
+
+          throw new Error(
+
+            (
+              result &&
+              (
+                result.details ||
+                result.error
+              )
+            )
+            ||
+            "El servidor no pudo guardar la suscripción."
+
+          );
+
+        }
+
 
         setButtonEnabledState();
-        console.log("OPEN 24HS: notificaciones push activadas", subscription);
+
+
+        console.log(
+          "OPEN 24HS: notificaciones push activadas",
+          subscription
+        );
+
       }
 
+
       async function initPushButton() {
+
         try {
-          if ("serviceWorker" in navigator) {
-            const registration = await navigator.serviceWorker.register(
-              "/service-worker.js",
-              { scope: "/" }
-            );
+
+          if (
+            "serviceWorker" in navigator
+          ) {
+
+            const registration =
+              await navigator
+                .serviceWorker
+                .register(
+                  "/service-worker.js",
+                  {
+                    scope: "/"
+                  }
+                );
+
 
             await navigator.serviceWorker.ready;
 
+
             const existingSubscription =
-              await registration.pushManager.getSubscription();
+              await registration
+                .pushManager
+                .getSubscription();
+
 
             if (
+
               existingSubscription &&
+
               "Notification" in window &&
-              Notification.permission === "granted"
+
+              Notification.permission ===
+                "granted"
+
             ) {
+
               setButtonEnabledState();
+
             }
+
           }
-        } catch (error) {
-          console.warn("OPEN 24HS: Service Worker todavía no disponible.", error);
+
         }
+
+        catch (error) {
+
+          console.warn(
+            "OPEN 24HS: Service Worker todavía no disponible.",
+            error
+          );
+
+        }
+
       }
 
-      button.addEventListener("click", async () => {
-        button.disabled = true;
-        button.textContent = "⏳ Activando...";
 
-        try {
-          await registerPush();
-        } catch (error) {
-          console.error("OPEN 24HS Push:", error);
+      button.addEventListener(
 
-          button.disabled = false;
-          button.textContent = "🔔 Activar notificaciones";
+        "click",
 
-          alert(
-            "No se pudieron activar las notificaciones.\n\n" +
-            error.message
-          );
+        async () => {
+
+          button.disabled =
+            true;
+
+
+          button.textContent =
+            "⏳ Activando...";
+
+
+          try {
+
+            await registerPush();
+
+          }
+
+          catch (error) {
+
+            console.error(
+              "OPEN 24HS Push:",
+              error
+            );
+
+
+            button.disabled =
+              false;
+
+
+            button.textContent =
+              "🔔 Activar notificaciones";
+
+
+            alert(
+
+              "No se pudieron activar las notificaciones.\n\n" +
+              error.message
+
+            );
+
+          }
+
         }
-      });
+
+      );
+
 
       initPushButton();
+
     })();
+
   </script>
+
 
 </body>
 </html>
