@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -8,9 +9,14 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>Chat</title>
+  <title>OROPURO | Chat</title>
 
   <style>
+
+    /* ==========================================
+       RESET
+    ========================================== */
+
     * {
       margin: 0;
       padding: 0;
@@ -21,25 +27,26 @@
     body {
       width: 100%;
       height: 100%;
-      min-height: 100%;
       overflow: hidden;
-      background: #ffffff;
+      background: #070707;
     }
 
     body {
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
+      background: #070707;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
-    /*
-      CONTENEDOR DEL CHAT
-    */
 
-    #custom_chat_holder {
+    /* ==========================================
+       PANTALLA DE CARGA
+    ========================================== */
+
+    #loading-screen {
+
       position: fixed;
+
       inset: 0;
 
       width: 100vw;
@@ -48,20 +55,252 @@
       width: 100dvw;
       height: 100dvh;
 
-      min-width: 100%;
-      min-height: 100%;
+      z-index: 99999999;
 
-      background: #ffffff;
-      overflow: hidden;
+      display: flex;
 
-      z-index: 999999;
+      align-items: center;
+      justify-content: center;
+
+      flex-direction: column;
+
+      background:
+        radial-gradient(
+          circle at center,
+          #25200f 0%,
+          #11100a 35%,
+          #070707 70%,
+          #030303 100%
+        );
+
+      transition:
+        opacity 0.6s ease,
+        visibility 0.6s ease;
+
     }
 
-    /*
-      ELEMENTOS QUE KOMMO PUEDA CREAR
-    */
+
+    /* ==========================================
+       EFECTO DE LUZ
+    ========================================== */
+
+    #loading-screen::before {
+
+      content: "";
+
+      position: absolute;
+
+      width: 280px;
+      height: 280px;
+
+      border-radius: 50%;
+
+      background: rgba(212, 175, 55, 0.10);
+
+      filter: blur(70px);
+
+      animation: glow 2.5s ease-in-out infinite;
+
+    }
+
+    @keyframes glow {
+
+      0% {
+        transform: scale(0.85);
+        opacity: 0.4;
+      }
+
+      50% {
+        transform: scale(1.15);
+        opacity: 0.9;
+      }
+
+      100% {
+        transform: scale(0.85);
+        opacity: 0.4;
+      }
+
+    }
+
+
+    /* ==========================================
+       LOGO OROPURO
+    ========================================== */
+
+    .loading-logo {
+
+      position: relative;
+
+      z-index: 2;
+
+      font-size: 38px;
+
+      font-weight: 900;
+
+      letter-spacing: 6px;
+
+      text-align: center;
+
+      color: #d4af37;
+
+      text-shadow:
+        0 0 5px rgba(212,175,55,0.5),
+        0 0 15px rgba(212,175,55,0.35),
+        0 0 30px rgba(212,175,55,0.20);
+
+      animation: logoPulse 2s ease-in-out infinite;
+
+    }
+
+    @keyframes logoPulse {
+
+      0% {
+        opacity: 0.65;
+        transform: scale(0.97);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      100% {
+        opacity: 0.65;
+        transform: scale(0.97);
+      }
+
+    }
+
+
+    /* ==========================================
+       TEXTO
+    ========================================== */
+
+    .loading-text {
+
+      position: relative;
+
+      z-index: 2;
+
+      margin-top: 14px;
+
+      color: #b7b7b7;
+
+      font-size: 12px;
+
+      letter-spacing: 2px;
+
+      text-transform: uppercase;
+
+    }
+
+
+    /* ==========================================
+       SPINNER
+    ========================================== */
+
+    .loader {
+
+      position: relative;
+
+      z-index: 2;
+
+      width: 34px;
+      height: 34px;
+
+      margin-top: 28px;
+
+      border-radius: 50%;
+
+      border: 3px solid rgba(212,175,55,0.15);
+
+      border-top-color: #d4af37;
+
+      border-right-color: #d4af37;
+
+      animation: spin 0.8s linear infinite;
+
+    }
+
+    @keyframes spin {
+
+      to {
+        transform: rotate(360deg);
+      }
+
+    }
+
+
+    /* ==========================================
+       PUNTOS
+    ========================================== */
+
+    .dots {
+
+      position: relative;
+
+      z-index: 2;
+
+      margin-top: 12px;
+
+      color: #d4af37;
+
+      font-size: 14px;
+
+      letter-spacing: 4px;
+
+      animation: dots 1.2s infinite;
+
+    }
+
+    @keyframes dots {
+
+      0% {
+        opacity: 0.25;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.25;
+      }
+
+    }
+
+
+    /* ==========================================
+       CONTENEDOR DEL CHAT
+    ========================================== */
+
+    #custom_chat_holder {
+
+      position: fixed;
+
+      inset: 0;
+
+      width: 100vw;
+      height: 100vh;
+
+      width: 100dvw;
+      height: 100dvh;
+
+      background: #111111;
+
+      overflow: hidden;
+
+      z-index: 1;
+
+    }
+
+
+    /* ==========================================
+       IFRAME DE KOMMO
+    ========================================== */
 
     #custom_chat_holder iframe {
+
       display: block !important;
 
       position: absolute !important;
@@ -76,29 +315,60 @@
       min-height: 100% !important;
 
       border: 0 !important;
+
       margin: 0 !important;
       padding: 0 !important;
+
     }
 
-    /*
-      CELULARES
-    */
+
+    /* ==========================================
+       OCULTAR LOADING
+    ========================================== */
+
+    #loading-screen.loaded {
+
+      opacity: 0;
+
+      visibility: hidden;
+
+      pointer-events: none;
+
+    }
+
+
+    /* ==========================================
+       CELULAR
+    ========================================== */
 
     @media (max-width: 768px) {
 
       html,
       body {
+
         width: 100%;
         height: 100%;
-        min-height: 100%;
 
         overflow: hidden;
 
         position: fixed;
+
         inset: 0;
+
+      }
+
+      #loading-screen {
+
+        width: 100vw;
+        height: 100vh;
+
+        width: 100dvw;
+        height: 100dvh;
+
       }
 
       #custom_chat_holder {
+
         position: fixed;
 
         top: 0;
@@ -112,41 +382,46 @@
         width: 100dvw;
         height: 100dvh;
 
-        overflow: hidden;
       }
+
+      .loading-logo {
+
+        font-size: 34px;
+
+        letter-spacing: 5px;
+
+      }
+
     }
 
-    /*
-      IPHONE / SAFARI
-    */
+
+    /* ==========================================
+       IPHONE / SAFARI
+    ========================================== */
 
     @supports (-webkit-touch-callout: none) {
 
+      #loading-screen,
       #custom_chat_holder {
+
         height: -webkit-fill-available;
+
       }
 
     }
+
   </style>
 
-  <!-- =====================================================
+
+  <!-- ==========================================
        CONFIGURACIÓN DE KOMMO
-       ===================================================== -->
+  ========================================== -->
 
   <script>
 
     window.crmPluginConfig = {
 
-      /*
-        IMPORTANTE:
-        ocultamos el botón flotante
-      */
-
       hidden: true,
-
-      /*
-        CHAT DENTRO DE NUESTRA PÁGINA
-      */
 
       onlinechat: {
 
@@ -155,30 +430,27 @@
         container: '#custom_chat_holder',
 
         locale: {
+
           extends: 'es',
+
           date_format: 'dd.MM.YYYY',
+
           time_format: 'HH:mm',
+
           compose_placeholder: 'Escribe un mensaje...',
+
           delivery_status_sending: 'Enviando',
+
           delivery_status_sent: 'Enviado',
+
           delivery_status_read: 'Leído',
+
           delivery_status_error: 'Error',
+
           powered_by: 'Desarrollado por',
+
           new_messages: 'Nuevos mensajes'
-        },
 
-        theme: {
-          header: {
-            background: '#ffffff',
-            color: '#222222'
-          },
-
-          message: {
-            outgoing_background: '#2563eb',
-            outgoing_color: '#ffffff',
-            incoming_background: '#f1f1f1',
-            incoming_color: '#222222'
-          }
         }
 
       }
@@ -189,18 +461,43 @@
 
 </head>
 
+
 <body>
 
-  <!-- =====================================================
-       ACÁ KOMMO VA A INSERTAR EL CHAT REAL
-       ===================================================== -->
+
+  <!-- ==========================================
+       PANTALLA DE CARGA
+  ========================================== -->
+
+  <div id="loading-screen">
+
+    <div class="loading-logo">
+      OROPURO
+    </div>
+
+    <div class="loading-text">
+      Conectando con atención online
+    </div>
+
+    <div class="loader"></div>
+
+    <div class="dots">
+      • • •
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================
+       CHAT DE KOMMO
+  ========================================== -->
 
   <div id="custom_chat_holder"></div>
 
 
-  <!-- =====================================================
-       CÓDIGO OFICIAL DE TU CHAT DE KOMMO
-       ===================================================== -->
+  <!-- ==========================================
+       SCRIPT OFICIAL DE KOMMO
+  ========================================== -->
 
   <script>
 
@@ -216,17 +513,20 @@
 
         setMeta: function(p) {
 
-          this.params = (this.params || []).concat([p]);
+          this.params =
+            (this.params || []).concat([p]);
 
         }
 
       };
+
 
       a[o] = a[o] || function() {
 
         (a[o].q = a[o].q || []).push(arguments);
 
       };
+
 
       var d = a.document;
 
@@ -238,7 +538,9 @@
 
       s.src = 'https://gso.kommo.com/js/button.js';
 
-      d.head && d.head.appendChild(s);
+      d.head &&
+        d.head.appendChild(s);
+
 
     }(
       window,
@@ -252,70 +554,114 @@
   </script>
 
 
-  <!-- =====================================================
-       FORZAR APERTURA CUANDO KOMMO TERMINA DE CARGAR
-       ===================================================== -->
+  <!-- ==========================================
+       CONTROL DE CARGA
+  ========================================== -->
 
   <script>
 
-    function abrirChatKommo() {
+    const loadingScreen =
+      document.getElementById('loading-screen');
 
-      if (typeof window.crmPlugin === 'function') {
-
-        try {
-
-          window.crmPlugin('runChatShow');
-
-        } catch (error) {
-
-          console.log('Kommo todavía está inicializando...');
-
-        }
-
-      }
-
-    }
+    const chatHolder =
+      document.getElementById('custom_chat_holder');
 
 
     /*
-      Esperamos a que Kommo termine de inicializar.
-    */
+     * Cuando Kommo inserta contenido,
+     * esperamos un pequeño momento y
+     * ocultamos la pantalla de carga.
+     */
 
-    var intentos = 0;
+    const observer =
+      new MutationObserver(function() {
 
-    var esperarKommo = setInterval(function() {
+        const iframe =
+          chatHolder.querySelector('iframe');
 
-      intentos++;
+        if (iframe) {
 
-      if (typeof window.crmPlugin === 'function') {
+          setTimeout(function() {
 
-        clearInterval(esperarKommo);
+            loadingScreen.classList.add('loaded');
+
+          }, 500);
+
+          observer.disconnect();
+
+        }
+
+      });
+
+
+    observer.observe(
+      chatHolder,
+      {
+        childList: true,
+        subtree: true
+      }
+    );
+
+
+    /*
+     * Intentamos abrir el chat
+     * automáticamente.
+     */
+
+    let attempts = 0;
+
+
+    const checkKommo =
+      setInterval(function() {
+
+        attempts++;
+
+
+        if (
+          typeof window.crmPlugin === 'function'
+        ) {
+
+          try {
+
+            window.crmPlugin(
+              'runChatShow'
+            );
+
+          } catch (error) {
+
+            console.log(
+              'Esperando Kommo...'
+            );
+
+          }
+
+        }
+
 
         /*
-          Le damos un pequeño margen para
-          terminar de crear el chat.
-        */
+         * Máximo 15 segundos
+         */
 
-        setTimeout(function() {
+        if (attempts >= 150) {
 
-          abrirChatKommo();
+          clearInterval(checkKommo);
 
-        }, 300);
+        }
 
-      }
+      }, 100);
 
-      /*
-        Dejamos de intentar después de 15 segundos.
-      */
 
-      if (intentos >= 150) {
+    /*
+     * Seguridad:
+     * si Kommo tarda demasiado,
+     * quitamos el loading después de 15 segundos.
+     */
 
-        clearInterval(esperarKommo);
+    setTimeout(function() {
 
-      }
+      loadingScreen.classList.add('loaded');
 
-    }, 100);
-
+    }, 15000);
 
   </script>
 
