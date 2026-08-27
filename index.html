@@ -11,10 +11,6 @@
   <title>Chat</title>
 
   <style>
-    /* =========================================
-       RESET
-    ========================================= */
-
     * {
       margin: 0;
       padding: 0;
@@ -26,23 +22,12 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-    }
-
-    body {
       background: #ffffff;
-      font-family: Arial, Helvetica, sans-serif;
     }
-
-
-    /* =========================================
-       CONTENEDOR DEL CHAT
-    ========================================= */
 
     #custom_chat_holder {
       position: fixed;
-
-      top: 0;
-      left: 0;
+      inset: 0;
 
       width: 100vw;
       height: 100vh;
@@ -50,237 +35,64 @@
       width: 100dvw;
       height: 100dvh;
 
-      background: #ffffff;
-
       overflow: hidden;
-
-      z-index: 999999;
+      background: #ffffff;
     }
-
-
-    /* =========================================
-       ASEGURAMOS QUE EL CHAT DE KOMMO
-       OCUPE TODO EL CONTENEDOR
-    ========================================= */
-
-    #custom_chat_holder iframe {
-      width: 100% !important;
-      height: 100% !important;
-
-      min-width: 100% !important;
-      min-height: 100% !important;
-
-      border: 0 !important;
-    }
-
-
-    /* =========================================
-       CELULARES
-    ========================================= */
-
-    @media screen and (max-width: 768px) {
-
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-
-        overflow: hidden;
-
-        position: fixed;
-        inset: 0;
-      }
-
-      #custom_chat_holder {
-        position: fixed;
-
-        inset: 0;
-
-        width: 100vw;
-        height: 100vh;
-
-        width: 100dvw;
-        height: 100dvh;
-
-        min-height: 100vh;
-        min-height: 100dvh;
-
-        overflow: hidden;
-      }
-
-      #custom_chat_holder iframe {
-        position: absolute;
-
-        top: 0;
-        left: 0;
-
-        width: 100% !important;
-        height: 100% !important;
-
-        border: 0 !important;
-      }
-    }
-
-
-    /* =========================================
-       IPHONE / SAFARI
-    ========================================= */
-
-    @supports (-webkit-touch-callout: none) {
-
-      #custom_chat_holder {
-        height: -webkit-fill-available;
-        min-height: -webkit-fill-available;
-      }
-
-    }
-
   </style>
 
-
-  <!-- =====================================================
-       CONFIGURACIÓN DE KOMMO
-       MODO FRAME = CHAT DENTRO DE TODA LA PÁGINA
-  ====================================================== -->
-
+  <!-- CONFIGURACIÓN DE KOMMO -->
   <script>
-
     window.crmPluginConfig = {
-
-      /*
-       * Ocultamos el botón flotante.
-       * Nosotros queremos solamente el chat.
-       */
-
-      hidden: true,
-
-
-      /*
-       * Configuración del chat
-       */
-
       onlinechat: {
-
-        /*
-         * IMPORTANTE:
-         * frame = chat dentro del elemento HTML
-         */
-
         mode: 'frame',
-
-
-        /*
-         * Este es el contenedor donde Kommo
-         * va a cargar el chat.
-         */
-
         container: '#custom_chat_holder',
 
-
-        /*
-         * Español
-         */
-
         locale: {
-
           extends: 'es',
-
-          date_format: 'dd.MM.YYYY',
-
-          time_format: 'HH:mm',
-
-          compose_placeholder: 'Escribe un mensaje...',
-
-          delivery_status_sending: 'Enviando',
-
-          delivery_status_sent: 'Enviado',
-
-          delivery_status_read: 'Leído',
-
-          delivery_status_error: 'Error',
-
-          powered_by: 'Desarrollado por',
-
-          new_messages: 'Nuevos mensajes'
-
+          compose_placeholder: 'Escribe un mensaje...'
         },
 
-
-        /*
-         * Ocultamos el header adicional del widget
-         */
-
         theme: {
-
           header: false
-
         }
-
       }
-
     };
-
   </script>
 
 </head>
 
-
 <body>
 
-
-  <!-- =====================================================
-       CONTENEDOR DEL CHAT REAL DE KOMMO
-  ====================================================== -->
-
+  <!-- CHAT REAL DE KOMMO -->
   <div id="custom_chat_holder"></div>
 
 
-  <!-- =====================================================
-       SCRIPT OFICIAL DE KOMMO
-  ====================================================== -->
-
+  <!-- SCRIPT OFICIAL DE KOMMO -->
   <script>
-
     (function(a,m,o,c,r,m){
 
       a[m] = {
-
         id: "1079845",
-
         hash: "b5e2c2716e166aef9476333ef0b5228e8d50ef5b9728b9123d7f5d8d9282bb13",
-
         locale: "es",
 
         setMeta: function(p) {
-
           this.params = (this.params || []).concat([p]);
-
         }
-
       };
-
 
       a[o] = a[o] || function() {
-
         (a[o].q = a[o].q || []).push(arguments);
-
       };
 
-
-      var d = a.document,
-
-          s = d.createElement('script');
-
+      var d = a.document;
+      var s = d.createElement('script');
 
       s.async = true;
-
       s.id = m + '_script';
-
       s.src = 'https://gso.kommo.com/js/button.js';
 
-
       d.head && d.head.appendChild(s);
-
 
     }(
       window,
@@ -290,9 +102,7 @@
       0,
       'crm_plugin'
     ));
-
   </script>
-
 
 </body>
 </html>
