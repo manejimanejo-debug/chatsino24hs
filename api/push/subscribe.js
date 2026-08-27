@@ -40,12 +40,13 @@ export default async function handler(req, res) {
       `${supabaseUrl}/rest/v1/push_subscriptions`,
       {
         method: "POST",
+
         headers: {
           "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
           "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates"
+          "Prefer": "resolution=merge-duplicates,return=minimal"
         },
+
         body: JSON.stringify({
           client_id: client_id || null,
           endpoint: subscription.endpoint,
@@ -58,11 +59,13 @@ export default async function handler(req, res) {
     const text = await response.text();
 
     if (!response.ok) {
-      console.error("Supabase:", text);
+      console.error("Supabase error:", response.status, text);
 
       return res.status(500).json({
         ok: false,
-        error: "No se pudo guardar la suscripción"
+        error: "No se pudo guardar la suscripción",
+        status: response.status,
+        details: text
       });
     }
 
@@ -72,7 +75,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Server error:", error);
 
     return res.status(500).json({
       ok: false,
