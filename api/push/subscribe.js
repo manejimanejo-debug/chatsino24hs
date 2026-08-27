@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (!subscription || !subscription.endpoint) {
       return res.status(400).json({
         ok: false,
-        error: "Falta una suscripción push válida"
+        error: "Falta una suscripción Push válida"
       });
     }
 
@@ -28,11 +28,20 @@ export default async function handler(req, res) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error("Faltan variables de Supabase");
-
       return res.status(500).json({
         ok: false,
         error: "Servidor no configurado"
+      });
+    }
+
+    const endpoint = subscription.endpoint;
+    const p256dh = subscription.keys?.p256dh;
+    const auth = subscription.keys?.auth;
+
+    if (!p256dh || !auth) {
+      return res.status(400).json({
+        ok: false,
+        error: "La suscripción no contiene las claves Push necesarias"
       });
     }
 
@@ -40,17 +49,16 @@ export default async function handler(req, res) {
       `${supabaseUrl}/rest/v1/push_subscriptions`,
       {
         method: "POST",
-
         headers: {
           "apikey": supabaseKey,
           "Content-Type": "application/json",
           "Prefer": "resolution=merge-duplicates,return=minimal"
         },
-
         body: JSON.stringify({
           client_id: client_id || null,
-          endpoint: subscription.endpoint,
-          subscription: subscription,
+          endpoint,
+          p256dh,
+          auth,
           updated_at: new Date().toISOString()
         })
       }
@@ -59,7 +67,11 @@ export default async function handler(req, res) {
     const text = await response.text();
 
     if (!response.ok) {
-      console.error("Supabase error:", response.status, text);
+      console.error(
+        "Supabase error:",
+        response.status,
+        text
+      );
 
       return res.status(500).json({
         ok: false,
