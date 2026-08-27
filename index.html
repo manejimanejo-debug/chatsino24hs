@@ -9,7 +9,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>OROPURO | Chat</title>
+  <title>Open 24hs</title>
 
 
   <style>
@@ -59,7 +59,7 @@
 
 
     /* =====================================================
-       PANTALLA DE CARGA
+       PANTALLA DE CARGA OROPURO
     ===================================================== */
 
     #loading-screen {
@@ -99,6 +99,8 @@
     }
 
 
+    /* LUZ DORADA */
+
     #loading-screen::before {
 
       content: "";
@@ -124,25 +126,34 @@
     @keyframes goldGlow {
 
       0% {
+
         transform: scale(.8);
+
         opacity: .35;
+
       }
 
       50% {
+
         transform: scale(1.15);
+
         opacity: .9;
+
       }
 
       100% {
+
         transform: scale(.8);
+
         opacity: .35;
+
       }
 
     }
 
 
     /* =====================================================
-       LOGO OROPURO
+       LOGO
     ===================================================== */
 
     .loading-logo {
@@ -162,8 +173,11 @@
       text-align: center;
 
       text-shadow:
+
         0 0 5px rgba(212,175,55,.6),
+
         0 0 15px rgba(212,175,55,.4),
+
         0 0 35px rgba(212,175,55,.2);
 
       animation:
@@ -175,22 +189,35 @@
     @keyframes logoPulse {
 
       0% {
+
         opacity: .65;
+
         transform: scale(.97);
+
       }
 
       50% {
+
         opacity: 1;
+
         transform: scale(1);
+
       }
 
       100% {
+
         opacity: .65;
+
         transform: scale(.97);
+
       }
 
     }
 
+
+    /* =====================================================
+       TEXTO CARGANDO
+    ===================================================== */
 
     .loading-text {
 
@@ -292,7 +319,7 @@
 
 
     /* =====================================================
-       CONTENEDOR DEL CHAT
+       CONTENEDOR DEL CHAT REAL DE KOMMO
     ===================================================== */
 
     #custom_chat_holder {
@@ -344,115 +371,7 @@
 
 
     /* =====================================================
-       MENSAJE DE BIENVENIDA
-    ===================================================== */
-
-    #welcome-message {
-
-      position: fixed;
-
-      z-index: 999999;
-
-      left: 16px;
-      right: 16px;
-
-      top: 20px;
-
-      display: none;
-
-      pointer-events: none;
-
-    }
-
-
-    .welcome-bubble {
-
-      width: fit-content;
-
-      max-width: 92%;
-
-      background: #1a1a1a;
-
-      color: #ffffff;
-
-      border:
-
-        1px solid
-        rgba(212,175,55,.35);
-
-      border-radius: 5px 18px 18px 18px;
-
-      padding: 14px 16px;
-
-      font-size: 15px;
-
-      line-height: 1.5;
-
-      box-shadow:
-
-        0 8px 30px
-        rgba(0,0,0,.45);
-
-      animation:
-        welcomeAppear .5s ease;
-
-    }
-
-
-    .welcome-title {
-
-      font-weight: 700;
-
-      margin-bottom: 7px;
-
-      color: #ffffff;
-
-    }
-
-
-    .welcome-bonus {
-
-      font-weight: 700;
-
-      color: #d4af37;
-
-    }
-
-
-    .welcome-name {
-
-      margin-top: 7px;
-
-      color: #eeeeee;
-
-    }
-
-
-    @keyframes welcomeAppear {
-
-      from {
-
-        opacity: 0;
-
-        transform:
-          translateY(-10px);
-
-      }
-
-      to {
-
-        opacity: 1;
-
-        transform:
-          translateY(0);
-
-      }
-
-    }
-
-
-    /* =====================================================
-       OCULTAR LOADING
+       OCULTAR PANTALLA DE CARGA
     ===================================================== */
 
     #loading-screen.loaded {
@@ -467,7 +386,7 @@
 
 
     /* =====================================================
-       CELULAR
+       CELULARES
     ===================================================== */
 
     @media (max-width: 768px) {
@@ -524,27 +443,6 @@
 
       }
 
-
-      #welcome-message {
-
-        top: 16px;
-
-        left: 12px;
-        right: 12px;
-
-      }
-
-
-      .welcome-bubble {
-
-        max-width: 96%;
-
-        font-size: 14px;
-
-        padding: 13px 14px;
-
-      }
-
     }
 
 
@@ -569,13 +467,22 @@
 
   <!-- =====================================================
        CONFIGURACIÓN DE KOMMO
-  ===================================================== -->
+    ===================================================== -->
 
   <script>
 
     window.crmPluginConfig = {
 
+      /*
+       * NO MOSTRAR BOTÓN FLOTANTE
+       */
+
       hidden: true,
+
+
+      /*
+       * CHAT REAL A PANTALLA COMPLETA
+       */
 
       onlinechat: {
 
@@ -624,7 +531,7 @@
 
 
         /* =================================================
-           TEMA OSCURO OROPURO
+           TEMA OSCURO / DORADO
         ================================================= */
 
         theme: {
@@ -686,7 +593,7 @@
 
   <!-- =====================================================
        PANTALLA DE CARGA
-  ===================================================== -->
+    ===================================================== -->
 
   <div id="loading-screen">
 
@@ -708,53 +615,16 @@
 
 
   <!-- =====================================================
-       MENSAJE DE BIENVENIDA
-  ===================================================== -->
-
-  <div id="welcome-message">
-
-    <div class="welcome-bubble">
-
-      <div class="welcome-title">
-
-        👋
-        🎰 Hola, bienvenido a
-        <strong>Open 24hs</strong>
-        🎰✨
-
-      </div>
-
-
-      <div class="welcome-bonus">
-
-        🎁🔥 ¡Tenemos un bono del 100%
-        en tu primera carga! 🔥🎁
-
-      </div>
-
-
-      <div class="welcome-name">
-
-        📝 Pasame tu nombre y empezá
-        a disfrutar 😎🎮
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       CHAT DE KOMMO
-  ===================================================== -->
+       CHAT REAL DE KOMMO
+       NO HAY MENSAJES FALSOS ACÁ
+    ===================================================== -->
 
   <div id="custom_chat_holder"></div>
 
 
   <!-- =====================================================
-       SCRIPT OFICIAL DE KOMMO
-  ===================================================== -->
+       SCRIPT OFICIAL DE TU KOMMO
+    ===================================================== -->
 
   <script>
 
@@ -832,97 +702,135 @@
 
 
   <!-- =====================================================
-       CONTROL DE CARGA + APERTURA
-  ===================================================== -->
+       PARÁMETRO PARA EL SALESBOT
+    ===================================================== -->
 
   <script>
 
-    const loadingScreen =
-      document.getElementById(
-        'loading-screen'
-      );
-
-
-    const chatHolder =
-      document.getElementById(
-        'custom_chat_holder'
-      );
-
+    /*
+     * Este texto NO se dibuja en Vercel.
+     *
+     * Se envía como parámetro al Salesbot de Kommo.
+     *
+     * En el Salesbot podés utilizar:
+     *
+     * {{bot_params.welcome_message}}
+     */
 
     const welcomeMessage =
-      document.getElementById(
-        'welcome-message'
-      );
+      "👋 🎰 Hola, bienvenido a Open 24hs 🎰✨\n\n" +
+      "🎁🔥 ¡Tenemos un bono del 100% en tu primera carga! 🔥🎁\n\n" +
+      "📝 Pasame tu nombre y empezá a disfrutar 😎🎮";
 
 
-    /* =====================================================
-       DETECTAR CUANDO KOMMO ESTÁ LISTO
-    ===================================================== */
+    /*
+     * Esperamos a que Kommo
+     * haya creado crm_plugin.
+     */
 
-    const observer =
-      new MutationObserver(
+    let metaAttempts = 0;
+
+
+    const sendBotParams =
+      setInterval(
         function() {
 
 
-          const iframe =
-            chatHolder.querySelector(
-              'iframe'
+          metaAttempts++;
+
+
+          if (
+            typeof window.crm_plugin !==
+            'undefined' &&
+            typeof window.crm_plugin.setMeta ===
+            'function'
+          ) {
+
+
+            window.crm_plugin.setMeta({
+
+              bot_params: {
+
+                welcome_message:
+                  welcomeMessage
+
+              }
+
+            });
+
+
+            clearInterval(
+              sendBotParams
             );
-
-
-          if (iframe) {
-
-
-            setTimeout(
-              function() {
-
-                loadingScreen
-                  .classList
-                  .add('loaded');
-
-
-                /*
-                 * Mostramos el mensaje
-                 */
-
-                welcomeMessage.style.display =
-                  'block';
-
-
-              },
-
-              500
-
-            );
-
-
-            observer.disconnect();
 
           }
 
-        }
+
+          /*
+           * También intentamos con
+           * crmPlugin por compatibilidad.
+           */
+
+          else if (
+            typeof window.crmPlugin ===
+            'function'
+          ) {
+
+            try {
+
+              window.crmPlugin.setMeta({
+
+                bot_params: {
+
+                  welcome_message:
+                    welcomeMessage
+
+                }
+
+              });
+
+              clearInterval(
+                sendBotParams
+              );
+
+            }
+
+            catch (error) {
+
+              console.log(
+                'Esperando inicialización de Kommo...'
+              );
+
+            }
+
+          }
+
+
+          if (
+            metaAttempts >= 150
+          ) {
+
+            clearInterval(
+              sendBotParams
+            );
+
+          }
+
+
+        },
+
+        100
 
       );
 
-
-    observer.observe(
-
-      chatHolder,
-
-      {
-
-        childList: true,
-
-        subtree: true
-
-      }
-
-    );
+  </script>
 
 
-    /* =====================================================
+  <!-- =====================================================
        ABRIR CHAT AUTOMÁTICAMENTE
-    ===================================================== */
+    ===================================================== -->
+
+  <script>
 
     let attempts = 0;
 
@@ -981,10 +889,86 @@
 
       );
 
+  </script>
 
-    /* =====================================================
-       OCULTAR CARGA DE SEGURIDAD
-    ===================================================== */
+
+  <!-- =====================================================
+       DETECTAR CUANDO EL CHAT ESTÁ LISTO
+    ===================================================== -->
+
+  <script>
+
+    const loadingScreen =
+      document.getElementById(
+        'loading-screen'
+      );
+
+
+    const chatHolder =
+      document.getElementById(
+        'custom_chat_holder'
+      );
+
+
+    const observer =
+      new MutationObserver(
+        function() {
+
+
+          const iframe =
+            chatHolder.querySelector(
+              'iframe'
+            );
+
+
+          if (iframe) {
+
+
+            setTimeout(
+              function() {
+
+
+                loadingScreen
+                  .classList
+                  .add('loaded');
+
+
+              },
+
+              500
+
+            );
+
+
+            observer.disconnect();
+
+          }
+
+        }
+
+      );
+
+
+    observer.observe(
+
+      chatHolder,
+
+      {
+
+        childList: true,
+
+        subtree: true
+
+      }
+
+    );
+
+
+    /*
+     * Seguridad:
+     * máximo 15 segundos de pantalla
+     * de carga.
+     */
 
     setTimeout(
 
@@ -994,16 +978,11 @@
           .classList
           .add('loaded');
 
-
-        welcomeMessage.style.display =
-          'block';
-
       },
 
       15000
 
     );
-
 
   </script>
 
