@@ -1,479 +1,298 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#111827" />
+  <meta charset="UTF-8">
 
-  <title>Chat en línea</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
+
+  <title>Chat</title>
 
   <style>
+    /* =========================================
+       RESET
+    ========================================= */
+
     * {
-      box-sizing: border-box;
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
     }
 
     html,
     body {
       width: 100%;
-      min-height: 100%;
+      height: 100%;
+      overflow: hidden;
     }
 
     body {
+      background: #ffffff;
       font-family: Arial, Helvetica, sans-serif;
-      background:
-        radial-gradient(circle at 20% 10%, rgba(37, 99, 235, 0.18), transparent 35%),
-        radial-gradient(circle at 90% 90%, rgba(124, 58, 237, 0.15), transparent 35%),
-        #0b1020;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
     }
 
-    .page {
-      width: 100%;
-      max-width: 520px;
-      min-height: 100vh;
-      background: #f3f4f6;
-      color: #111827;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 0 50px rgba(0,0,0,.35);
-    }
 
-    /* HEADER */
+    /* =========================================
+       CONTENEDOR DEL CHAT
+    ========================================= */
 
-    .header {
-      background: linear-gradient(135deg, #111827, #1f2937);
-      color: white;
-      padding: 18px 18px 22px;
-    }
+    #custom_chat_holder {
+      position: fixed;
 
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .logo {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 20px;
-      border: 2px solid rgba(255,255,255,.25);
-    }
-
-    .brand-text h1 {
-      font-size: 17px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .online {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #d1d5db;
-    }
-
-    .online-dot {
-      width: 8px;
-      height: 8px;
-      background: #22c55e;
-      border-radius: 50%;
-      box-shadow: 0 0 0 4px rgba(34,197,94,.15);
-    }
-
-    .secure {
-      font-size: 20px;
-      opacity: .8;
-    }
-
-    /* CHAT AREA */
-
-    .chat {
-      padding: 20px 14px 130px;
-      min-height: calc(100vh - 88px);
-    }
-
-    .date {
-      text-align: center;
-      font-size: 11px;
-      color: #9ca3af;
-      margin-bottom: 20px;
-    }
-
-    .message-row {
-      display: flex;
-      margin-bottom: 13px;
-    }
-
-    .message-row.agent {
-      justify-content: flex-start;
-    }
-
-    .message-row.user {
-      justify-content: flex-end;
-    }
-
-    .bubble {
-      max-width: 82%;
-      padding: 12px 14px;
-      border-radius: 17px;
-      font-size: 14px;
-      line-height: 1.45;
-      box-shadow: 0 2px 8px rgba(0,0,0,.05);
-    }
-
-    .agent .bubble {
-      background: white;
-      color: #1f2937;
-      border-bottom-left-radius: 5px;
-    }
-
-    .user .bubble {
-      background: #2563eb;
-      color: white;
-      border-bottom-right-radius: 5px;
-    }
-
-    .time {
-      font-size: 10px;
-      opacity: .55;
-      margin-top: 6px;
-      text-align: right;
-    }
-
-    /* WELCOME */
-
-    .welcome {
-      background: white;
-      border-radius: 18px;
-      padding: 18px;
-      margin-bottom: 18px;
-      box-shadow: 0 5px 20px rgba(0,0,0,.06);
-      text-align: center;
-    }
-
-    .welcome-icon {
-      width: 62px;
-      height: 62px;
-      margin: 0 auto 12px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      font-size: 28px;
-    }
-
-    .welcome h2 {
-      font-size: 20px;
-      margin-bottom: 8px;
-    }
-
-    .welcome p {
-      font-size: 13px;
-      color: #6b7280;
-      line-height: 1.5;
-    }
-
-    /* CTA */
-
-    .start-chat {
-      width: 100%;
-      border: 0;
-      border-radius: 14px;
-      padding: 15px 18px;
-      background: #2563eb;
-      color: white;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 12px;
-      transition: .2s;
-      box-shadow: 0 5px 18px rgba(37,99,235,.25);
-    }
-
-    .start-chat:hover {
-      transform: translateY(-1px);
-      background: #1d4ed8;
-    }
-
-    .start-chat:active {
-      transform: scale(.98);
-    }
-
-    /* BOTTOM AREA */
-
-    .bottom {
-      position: absolute;
-      bottom: 0;
+      top: 0;
       left: 0;
-      width: 100%;
-      background: rgba(255,255,255,.97);
-      border-top: 1px solid #e5e7eb;
-      padding: 12px 14px;
-      backdrop-filter: blur(10px);
+
+      width: 100vw;
+      height: 100vh;
+
+      width: 100dvw;
+      height: 100dvh;
+
+      background: #ffffff;
+
+      overflow: hidden;
+
+      z-index: 999999;
     }
 
-    .input-fake {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #f3f4f6;
-      border-radius: 24px;
-      padding: 6px 7px 6px 16px;
-      cursor: pointer;
+
+    /* =========================================
+       ASEGURAMOS QUE EL CHAT DE KOMMO
+       OCUPE TODO EL CONTENEDOR
+    ========================================= */
+
+    #custom_chat_holder iframe {
+      width: 100% !important;
+      height: 100% !important;
+
+      min-width: 100% !important;
+      min-height: 100% !important;
+
+      border: 0 !important;
     }
 
-    .input-fake span {
-      flex: 1;
-      color: #9ca3af;
-      font-size: 14px;
-    }
 
-    .send {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: none;
-      background: #2563eb;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-    }
+    /* =========================================
+       CELULARES
+    ========================================= */
 
-    .powered {
-      text-align: center;
-      font-size: 10px;
-      color: #9ca3af;
-      margin-top: 8px;
-    }
+    @media screen and (max-width: 768px) {
 
-    /* DESKTOP */
-
-    @media (min-width: 700px) {
+      html,
       body {
-        padding: 25px 0;
+        width: 100%;
+        height: 100%;
+
+        overflow: hidden;
+
+        position: fixed;
+        inset: 0;
       }
 
-      .page {
-        min-height: calc(100vh - 50px);
-        height: calc(100vh - 50px);
-        border-radius: 22px;
+      #custom_chat_holder {
+        position: fixed;
+
+        inset: 0;
+
+        width: 100vw;
+        height: 100vh;
+
+        width: 100dvw;
+        height: 100dvh;
+
+        min-height: 100vh;
+        min-height: 100dvh;
+
+        overflow: hidden;
       }
 
-      .chat {
-        min-height: auto;
-        height: calc(100% - 88px);
-        overflow-y: auto;
+      #custom_chat_holder iframe {
+        position: absolute;
+
+        top: 0;
+        left: 0;
+
+        width: 100% !important;
+        height: 100% !important;
+
+        border: 0 !important;
       }
     }
+
+
+    /* =========================================
+       IPHONE / SAFARI
+    ========================================= */
+
+    @supports (-webkit-touch-callout: none) {
+
+      #custom_chat_holder {
+        height: -webkit-fill-available;
+        min-height: -webkit-fill-available;
+      }
+
+    }
+
   </style>
+
+
+  <!-- =====================================================
+       CONFIGURACIÓN DE KOMMO
+       MODO FRAME = CHAT DENTRO DE TODA LA PÁGINA
+  ====================================================== -->
+
+  <script>
+
+    window.crmPluginConfig = {
+
+      /*
+       * Ocultamos el botón flotante.
+       * Nosotros queremos solamente el chat.
+       */
+
+      hidden: true,
+
+
+      /*
+       * Configuración del chat
+       */
+
+      onlinechat: {
+
+        /*
+         * IMPORTANTE:
+         * frame = chat dentro del elemento HTML
+         */
+
+        mode: 'frame',
+
+
+        /*
+         * Este es el contenedor donde Kommo
+         * va a cargar el chat.
+         */
+
+        container: '#custom_chat_holder',
+
+
+        /*
+         * Español
+         */
+
+        locale: {
+
+          extends: 'es',
+
+          date_format: 'dd.MM.YYYY',
+
+          time_format: 'HH:mm',
+
+          compose_placeholder: 'Escribe un mensaje...',
+
+          delivery_status_sending: 'Enviando',
+
+          delivery_status_sent: 'Enviado',
+
+          delivery_status_read: 'Leído',
+
+          delivery_status_error: 'Error',
+
+          powered_by: 'Desarrollado por',
+
+          new_messages: 'Nuevos mensajes'
+
+        },
+
+
+        /*
+         * Ocultamos el header adicional del widget
+         */
+
+        theme: {
+
+          header: false
+
+        }
+
+      }
+
+    };
+
+  </script>
+
 </head>
+
 
 <body>
 
-  <main class="page">
 
-    <!-- CABECERA -->
-    <header class="header">
-      <div class="header-top">
+  <!-- =====================================================
+       CONTENEDOR DEL CHAT REAL DE KOMMO
+  ====================================================== -->
 
-        <div class="brand">
-
-          <div class="logo">
-            A
-          </div>
-
-          <div class="brand-text">
-            <h1>Atención en línea</h1>
-
-            <div class="online">
-              <span class="online-dot"></span>
-              Operadores disponibles
-            </div>
-          </div>
-
-        </div>
-
-        <div class="secure">🔒</div>
-
-      </div>
-    </header>
+  <div id="custom_chat_holder"></div>
 
 
-    <!-- CONTENIDO -->
-    <section class="chat">
-
-      <div class="date">
-        HOY
-      </div>
-
-      <div class="welcome">
-
-        <div class="welcome-icon">
-          💬
-        </div>
-
-        <h2>¡Hola! 👋</h2>
-
-        <p>
-          Bienvenido a nuestro chat.
-          Estamos en línea para ayudarte.
-        </p>
-
-        <button class="start-chat" onclick="openKommo()">
-          INICIAR CONVERSACIÓN
-        </button>
-
-      </div>
-
-
-      <div class="message-row agent">
-        <div class="bubble">
-
-          👋 ¡Hola! ¿Cómo estás?
-
-          <br><br>
-
-          Contanos en qué podemos ayudarte y uno de nuestros
-          operadores te responderá.
-
-          <div class="time">
-            Ahora
-          </div>
-
-        </div>
-      </div>
-
-
-      <div class="message-row agent">
-        <div class="bubble">
-
-          Nuestro equipo se encuentra disponible para atender tu consulta.
-
-          <div class="time">
-            Ahora
-          </div>
-
-        </div>
-      </div>
-
-    </section>
-
-
-    <!-- BARRA INFERIOR -->
-    <div class="bottom">
-
-      <div class="input-fake" onclick="openKommo()">
-
-        <span>Escribí un mensaje...</span>
-
-        <button class="send" aria-label="Abrir chat">
-          ➤
-        </button>
-
-      </div>
-
-      <div class="powered">
-        Atención online
-      </div>
-
-    </div>
-
-  </main>
-
-
-  <!-- ===================================================== -->
-  <!-- KOMMO -->
-  <!-- ===================================================== -->
+  <!-- =====================================================
+       SCRIPT OFICIAL DE KOMMO
+  ====================================================== -->
 
   <script>
+
     (function(a,m,o,c,r,m){
-      a[m]={
-        id:"1079845",
-        hash:"b5e2c2716e166aef9476333ef0b5228e8d50ef5b9728b9123d7f5d8d9282bb13",
-        locale:"es",
-        setMeta:function(p){
-          this.params=(this.params||[]).concat([p])
+
+      a[m] = {
+
+        id: "1079845",
+
+        hash: "b5e2c2716e166aef9476333ef0b5228e8d50ef5b9728b9123d7f5d8d9282bb13",
+
+        locale: "es",
+
+        setMeta: function(p) {
+
+          this.params = (this.params || []).concat([p]);
+
         }
+
       };
 
-      a[o]=a[o]||function(){
-        (a[o].q=a[o].q||[]).push(arguments)
+
+      a[o] = a[o] || function() {
+
+        (a[o].q = a[o].q || []).push(arguments);
+
       };
 
-      var d=a.document,
-          s=d.createElement('script');
 
-      s.async=true;
-      s.id=m+'_script';
-      s.src='https://gso.kommo.com/js/button.js';
+      var d = a.document,
+
+          s = d.createElement('script');
+
+
+      s.async = true;
+
+      s.id = m + '_script';
+
+      s.src = 'https://gso.kommo.com/js/button.js';
+
 
       d.head && d.head.appendChild(s);
 
-    }(window,0,'crmPlugin',0,0,'crm_plugin'));
-  </script>
 
-
-  <!-- ABRIR KOMMO -->
-  <script>
-
-    function openKommo() {
-
-      /*
-       * El widget de Kommo se carga de forma asíncrona.
-       * Intentamos abrirlo mediante crmPlugin.
-       */
-
-      try {
-
-        if (typeof window.crmPlugin === "function") {
-          window.crmPlugin("open");
-          return;
-        }
-
-      } catch (e) {
-        console.log("Kommo todavía está cargando");
-      }
-
-
-      /*
-       * Si Kommo todavía no terminó de cargar,
-       * buscamos el botón generado por el widget.
-       */
-
-      const possibleButtons = document.querySelectorAll(
-        '[class*="amo"], [class*="kommo"], iframe'
-      );
-
-      if (possibleButtons.length > 0) {
-
-        try {
-          possibleButtons[possibleButtons.length - 1].click();
-        } catch(e) {}
-
-      }
-
-    }
+    }(
+      window,
+      0,
+      'crmPlugin',
+      0,
+      0,
+      'crm_plugin'
+    ));
 
   </script>
+
 
 </body>
 </html>
