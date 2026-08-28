@@ -1,16 +1,22 @@
 import webpush from "web-push";
 
-export default async function handler(req, res) {
+
+export default async function handler(
+  req,
+  res
+) {
 
   res.setHeader(
     "Access-Control-Allow-Origin",
     "*"
   );
 
+
   res.setHeader(
     "Access-Control-Allow-Methods",
     "POST, OPTIONS"
   );
+
 
   res.setHeader(
     "Access-Control-Allow-Headers",
@@ -18,18 +24,28 @@ export default async function handler(req, res) {
   );
 
 
-  if (req.method === "OPTIONS") {
+  if (
+    req.method === "OPTIONS"
+  ) {
 
-    return res.status(200).end();
+    return res
+      .status(200)
+      .end();
 
   }
 
 
-  if (req.method !== "POST") {
+  if (
+    req.method !== "POST"
+  ) {
 
     return res.status(405).json({
+
       ok: false,
-      error: "Method not allowed"
+
+      error:
+        "Method not allowed"
+
     });
 
   }
@@ -38,7 +54,9 @@ export default async function handler(req, res) {
   try {
 
     const secret =
-      req.headers["x-push-secret"];
+      req.headers[
+        "x-push-secret"
+      ];
 
 
     if (
@@ -48,8 +66,12 @@ export default async function handler(req, res) {
     ) {
 
       return res.status(401).json({
+
         ok: false,
-        error: "Unauthorized"
+
+        error:
+          "Unauthorized"
+
       });
 
     }
@@ -58,14 +80,18 @@ export default async function handler(req, res) {
     const supabaseUrl =
       process.env.SUPABASE_URL;
 
+
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 
     const vapidPublicKey =
       process.env.VAPID_PUBLIC_KEY;
 
+
     const vapidPrivateKey =
       process.env.VAPID_PRIVATE_KEY;
+
 
     const vapidSubject =
       process.env.VAPID_SUBJECT;
@@ -80,17 +106,25 @@ export default async function handler(req, res) {
     ) {
 
       return res.status(500).json({
+
         ok: false,
-        error: "Servidor no configurado"
+
+        error:
+          "Servidor no configurado"
+
       });
 
     }
 
 
     webpush.setVapidDetails(
+
       vapidSubject,
+
       vapidPublicKey,
+
       vapidPrivateKey
+
     );
 
 
@@ -98,65 +132,24 @@ export default async function handler(req, res) {
       title,
       body,
       image,
+      icon,
       url
     } = req.body || {};
 
 
-    if (!title || !body) {
+    if (
+      !title ||
+      !body
+    ) {
 
       return res.status(400).json({
+
         ok: false,
+
         error:
           "Título y mensaje son obligatorios"
+
       });
-
-    }
-
-
-    let normalizedImage =
-      null;
-
-
-    /*
-     * La imagen es opcional.
-     * Si existe, verificamos que sea
-     * una URL válida.
-     */
-
-    if (image) {
-
-      try {
-
-        const imageUrl =
-          new URL(image);
-
-
-        if (
-          imageUrl.protocol !==
-            "https:" &&
-          imageUrl.protocol !==
-            "http:"
-        ) {
-
-          throw new Error(
-            "URL de imagen no válida"
-          );
-
-        }
-
-
-        normalizedImage =
-          imageUrl.toString();
-
-      } catch (_) {
-
-        return res.status(400).json({
-          ok: false,
-          error:
-            "La URL de la imagen no es válida"
-        });
-
-      }
 
     }
 
@@ -167,36 +160,50 @@ export default async function handler(req, res) {
 
     const response =
       await fetch(
+
         `${supabaseUrl}/rest/v1/push_subscriptions?select=id,client_id,endpoint,p256dh,auth`,
+
         {
-          method: "GET",
+
+          method:
+            "GET",
 
           headers: {
+
             apikey:
               supabaseKey,
 
             Authorization:
               `Bearer ${supabaseKey}`
+
           }
 
         }
+
       );
 
 
-    if (!response.ok) {
+    if (
+      !response.ok
+    ) {
 
       const errorText =
         await response.text();
+
 
       console.error(
         "Supabase:",
         errorText
       );
 
+
       return res.status(500).json({
+
         ok: false,
+
         error:
           "No se pudieron obtener las suscripciones"
+
       });
 
     }
@@ -206,40 +213,66 @@ export default async function handler(req, res) {
       await response.json();
 
 
-    if (!subscriptions.length) {
+    if (
+      !subscriptions.length
+    ) {
 
       return res.status(404).json({
+
         ok: false,
+
         error:
           "No hay clientes suscriptos"
+
       });
 
     }
 
 
     /*
-     * Armamos el contenido del Push.
+     * Payload de la notificación.
      */
 
+    const payloadData = {
+
+      title,
+
+      body,
+
+      url:
+        url ||
+        "https://chatsino24hs.vercel.app"
+
+    };
+
+
+    if (
+      image
+    ) {
+
+      payloadData.image =
+        image;
+
+    }
+
+
+    if (
+      icon
+    ) {
+
+      payloadData.icon =
+        icon;
+
+      payloadData.badge =
+        icon;
+
+    }
+
+
     const payload =
-      JSON.stringify({
-
-        title,
-
-        body,
-
-        ...(normalizedImage
-          ? {
-              image:
-                normalizedImage
-            }
-          : {}),
-
-        url:
-          url ||
-          "https://chatsino24hs.vercel.app"
-
-      });
+      JSON.stringify(
+        payloadData
+      );
 
 
     let sent = 0;
@@ -279,11 +312,16 @@ export default async function handler(req, res) {
       try {
 
         await webpush.sendNotification(
+
           pushSubscription,
+
           payload
+
         );
 
+
         sent++;
+
 
       } catch (error) {
 
@@ -291,29 +329,43 @@ export default async function handler(req, res) {
 
 
         console.error(
+
           "Push error:",
+
           error.statusCode,
+
           error.body
+
         );
 
 
         /*
-         * Si una suscripción murió,
-         * la eliminamos de Supabase.
+         * Si el navegador ya no tiene
+         * esa suscripción, limpiamos
+         * el registro.
          */
 
         if (
-          error.statusCode === 404 ||
-          error.statusCode === 410
+
+          error.statusCode ===
+            404 ||
+
+          error.statusCode ===
+            410
+
         ) {
 
           try {
 
             const deleteResponse =
               await fetch(
+
                 `${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${row.id}`,
+
                 {
-                  method: "DELETE",
+
+                  method:
+                    "DELETE",
 
                   headers: {
 
@@ -326,6 +378,7 @@ export default async function handler(req, res) {
                   }
 
                 }
+
               );
 
 
@@ -339,7 +392,7 @@ export default async function handler(req, res) {
 
           } catch (_) {
 
-            // No interrumpir el broadcast.
+            // Continuar con los demás clientes.
 
           }
 
@@ -369,8 +422,11 @@ export default async function handler(req, res) {
   } catch (error) {
 
     console.error(
+
       "Broadcast error:",
+
       error
+
     );
 
 
