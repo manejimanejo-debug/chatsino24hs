@@ -705,6 +705,7 @@
     id="push-notification-button"
     type="button"
     aria-label="Activar notificaciones"
+    style="display:none;"
   >
     🔔 Activar notificaciones
   </button>
@@ -1066,19 +1067,13 @@
 
 
       function setButtonEnabledState() {
+        button.style.display = "none";
+      }
 
-        button.textContent =
-          "✓ Notificaciones activadas";
-
-
-        button.classList.add(
-          "push-enabled"
-        );
-
-
-        button.disabled =
-          true;
-
+      function setButtonDisabledState() {
+        button.style.display = "block";
+        button.disabled = false;
+        button.textContent = "🔔 Activar notificaciones";
       }
 
 
@@ -1279,43 +1274,62 @@
         try {
 
           if (
-            "serviceWorker" in navigator
+            !("serviceWorker" in navigator) ||
+            !("PushManager" in window)
           ) {
 
-            const registration =
-              await navigator
-                .serviceWorker
-                .register(
-                  "/service-worker.js",
-                  {
-                    scope: "/"
-                  }
-                );
+            setButtonDisabledState();
+            return;
+
+          }
 
 
-            await navigator.serviceWorker.ready;
+          const registration =
+            await navigator
+              .serviceWorker
+              .register(
+                "/service-worker.js",
+                {
+                  scope: "/"
+                }
+              );
 
 
-            const existingSubscription =
-              await registration
-                .pushManager
-                .getSubscription();
+          await navigator.serviceWorker.ready;
 
 
-            if (
+          const existingSubscription =
+            await registration
+              .pushManager
+              .getSubscription();
 
-              existingSubscription &&
 
-              "Notification" in window &&
+          const permission =
+            "Notification" in window
+              ? Notification.permission
+              : "default";
 
-              Notification.permission ===
-                "granted"
 
-            ) {
+          /*
+           * Si las notificaciones están activas:
+           * - existe una suscripción
+           * - el permiso es granted
+           *
+           * El botón desaparece.
+           */
 
-              setButtonEnabledState();
+          if (
+            existingSubscription &&
+            permission === "granted"
+          ) {
 
-            }
+            setButtonEnabledState();
+
+          }
+
+          else {
+
+            setButtonDisabledState();
 
           }
 
@@ -1324,9 +1338,11 @@
         catch (error) {
 
           console.warn(
-            "OPEN 24HS: Service Worker todavía no disponible.",
+            "OPEN 24HS: Error comprobando notificaciones.",
             error
           );
+
+          setButtonDisabledState();
 
         }
 
@@ -1364,6 +1380,9 @@
             button.disabled =
               false;
 
+            button.style.display =
+              "block";
+
 
             button.textContent =
               "🔔 Activar notificaciones";
@@ -1384,6 +1403,22 @@
 
 
       initPushButton();
+
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+          if (document.visibilityState === "visible") {
+            initPushButton();
+          }
+        }
+      );
+
+      window.addEventListener(
+        "focus",
+        () => {
+          initPushButton();
+        }
+      );
 
     })();
 
