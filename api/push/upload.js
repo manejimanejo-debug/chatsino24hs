@@ -1,15 +1,19 @@
 import crypto from "crypto";
 
-const MAX_FILE_SIZE =
+
+const MAX_IMAGE_SIZE =
   2 * 1024 * 1024;
+
 
 const ALLOWED_TYPES =
   new Set([
+
     "image/jpeg",
     "image/png",
-    "image/webp",
-    "image/gif"
+    "image/webp"
+
   ]);
+
 
 const EXTENSIONS = {
 
@@ -20,36 +24,223 @@ const EXTENSIONS = {
     "png",
 
   "image/webp":
-    "webp",
-
-  "image/gif":
-    "gif"
+    "webp"
 
 };
 
 
-function jsonBody(req) {
+function parseBody(req) {
 
   if (
     req.body &&
     typeof req.body === "object"
   ) {
+
     return req.body;
+
   }
+
 
   if (
     typeof req.body === "string"
   ) {
 
     try {
-      return JSON.parse(req.body);
+
+      return JSON.parse(
+        req.body
+      );
+
     } catch (_) {
+
       return {};
+
     }
 
   }
 
+
   return {};
+
+}
+
+
+async function ensureBucket(
+  supabaseUrl,
+  supabaseKey,
+  bucket
+) {
+
+  const check =
+    await fetch(
+      `${supabaseUrl}/storage/v1/bucket/${bucket}`,
+      {
+
+        method:
+          "GET",
+
+        headers: {
+
+          Authorization:
+            `Bearer ${supabaseKey}`,
+
+          apikey:
+            supabaseKey
+
+        }
+
+      }
+    );
+
+
+  if (check.ok) {
+
+    return;
+
+  }
+
+
+  const create =
+    await fetch(
+      `${supabaseUrl}/storage/v1/bucket`,
+      {
+
+        method:
+          "POST",
+
+        headers: {
+
+          Authorization:
+            `Bearer ${supabaseKey}`,
+
+          apikey:
+            supabaseKey,
+
+          "Content-Type":
+            "application/json"
+
+        },
+
+        body:
+          JSON.stringify({
+
+            id:
+              bucket,
+
+            name:
+              bucket,
+
+            public:
+              true
+
+          })
+
+      }
+    );
+
+
+  if (
+    !create.ok &&
+    create.status !== 409
+  ) {
+
+    const text =
+      await create.text();
+
+    throw new Error(
+      `No se pudo crear el bucket: ${text}`
+    );
+
+  }
+
+}
+
+
+async function uploadObject({
+  supabaseUrl,
+  supabaseKey,
+  bucket,
+  objectPath,
+  data,
+  contentType
+}) {
+
+  const buffer =
+    Buffer.from(
+      data,
+      "base64"
+    );
+
+
+  if (
+    !buffer.length
+  ) {
+
+    throw new Error(
+      "La imagen está vacía."
+    );
+
+  }
+
+
+  if (
+    buffer.length >
+    MAX_IMAGE_SIZE
+  ) {
+
+    throw new Error(
+      "La imagen supera el límite permitido."
+    );
+
+  }
+
+
+  const response =
+    await fetch(
+      `${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`,
+      {
+
+        method:
+          "POST",
+
+        headers: {
+
+          Authorization:
+            `Bearer ${supabaseKey}`,
+
+          apikey:
+            supabaseKey,
+
+          "Content-Type":
+            contentType,
+
+          "x-upsert":
+            "true"
+
+        },
+
+        body:
+          buffer
+
+      }
+    );
+
+
+  if (!response.ok) {
+
+    const text =
+      await response.text();
+
+    throw new Error(
+      `Error Storage: ${text}`
+    );
+
+  }
+
+
+  return (
+    `${supabaseUrl}/storage/v1/object/public/${bucket}/${objectPath}`
+  );
 
 }
 
@@ -64,10 +255,12 @@ export default async function handler(
     "*"
   );
 
+
   res.setHeader(
     "Access-Control-Allow-Methods",
     "POST, OPTIONS"
   );
+
 
   res.setHeader(
     "Access-Control-Allow-Headers",
@@ -79,7 +272,9 @@ export default async function handler(
     req.method === "OPTIONS"
   ) {
 
-    return res.status(200).end();
+    return res
+      .status(200)
+      .end();
 
   }
 
@@ -89,9 +284,12 @@ export default async function handler(
   ) {
 
     return res.status(405).json({
+
       ok: false,
+
       error:
         "Method not allowed"
+
     });
 
   }
@@ -100,7 +298,9 @@ export default async function handler(
   try {
 
     const secret =
-      req.headers["x-push-secret"];
+      req.headers[
+        "x-push-secret"
+      ];
 
 
     if (
@@ -110,8 +310,12 @@ export default async function handler(
     ) {
 
       return res.status(401).json({
+
         ok: false,
-        error: "Unauthorized"
+
+        error:
+          "Unauthorized"
+
       });
 
     }
@@ -120,16 +324,22 @@ export default async function handler(
     const {
       filename,
       contentType,
-      data
-    } = jsonBody(req);
+      data,
+      iconData
+    } = parseBody(req);
 
 
-    if (!data) {
+    if (
+      !data
+    ) {
 
       return res.status(400).json({
+
         ok: false,
+
         error:
           "No se recibió ninguna imagen"
+
       });
 
     }
@@ -142,41 +352,12 @@ export default async function handler(
     ) {
 
       return res.status(400).json({
+
         ok: false,
+
         error:
-          "Formato no permitido. Usá JPG, PNG, WEBP o GIF."
-      });
+          "Formato no permitido. Usá JPG, PNG o WEBP."
 
-    }
-
-
-    const buffer =
-      Buffer.from(
-        data,
-        "base64"
-      );
-
-
-    if (!buffer.length) {
-
-      return res.status(400).json({
-        ok: false,
-        error:
-          "La imagen está vacía"
-      });
-
-    }
-
-
-    if (
-      buffer.length >
-      MAX_FILE_SIZE
-    ) {
-
-      return res.status(413).json({
-        ok: false,
-        error:
-          "La imagen supera el límite de 2 MB."
       });
 
     }
@@ -184,6 +365,7 @@ export default async function handler(
 
     const supabaseUrl =
       process.env.SUPABASE_URL;
+
 
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -195,9 +377,12 @@ export default async function handler(
     ) {
 
       return res.status(500).json({
+
         ok: false,
+
         error:
           "Supabase no está configurado"
+
       });
 
     }
@@ -207,109 +392,11 @@ export default async function handler(
       "push-images";
 
 
-    /*
-     * Comprobamos si el bucket existe.
-     */
-
-    const bucketCheck =
-      await fetch(
-        `${supabaseUrl}/storage/v1/bucket/${bucket}`,
-        {
-          method: "GET",
-
-          headers: {
-
-            Authorization:
-              `Bearer ${supabaseKey}`,
-
-            apikey:
-              supabaseKey
-
-          }
-
-        }
-      );
-
-
-    /*
-     * Si no existe, intentamos crearlo.
-     */
-
-    if (
-      !bucketCheck.ok
-    ) {
-
-      const createBucket =
-        await fetch(
-          `${supabaseUrl}/storage/v1/bucket`,
-          {
-            method: "POST",
-
-            headers: {
-
-              Authorization:
-                `Bearer ${supabaseKey}`,
-
-              apikey:
-                supabaseKey,
-
-              "Content-Type":
-                "application/json"
-
-            },
-
-            body:
-              JSON.stringify({
-
-                id:
-                  bucket,
-
-                name:
-                  bucket,
-
-                public:
-                  true,
-
-                allowed_mime_types:
-                  Array.from(
-                    ALLOWED_TYPES
-                  )
-
-              })
-
-          }
-        );
-
-
-      /*
-       * 409 = el bucket ya existe.
-       */
-
-      if (
-        !createBucket.ok &&
-        createBucket.status !== 409
-      ) {
-
-        const text =
-          await createBucket.text();
-
-        console.error(
-          "Storage bucket:",
-          text
-        );
-
-        return res.status(500).json({
-
-          ok: false,
-
-          error:
-            "No se pudo preparar el almacenamiento de imágenes"
-
-        });
-
-      }
-
-    }
+    await ensureBucket(
+      supabaseUrl,
+      supabaseKey,
+      bucket
+    );
 
 
     const extension =
@@ -318,87 +405,84 @@ export default async function handler(
       ];
 
 
-    /*
-     * Nombre único para evitar
-     * colisiones entre imágenes.
-     */
-
-    const objectPath =
-      `alerts/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const randomId =
+      crypto.randomUUID();
 
 
-    const uploadResponse =
-      await fetch(
-        `${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`,
-        {
-          method: "POST",
-
-          headers: {
-
-            Authorization:
-              `Bearer ${supabaseKey}`,
-
-            apikey:
-              supabaseKey,
-
-            "Content-Type":
-              contentType,
-
-            "x-upsert":
-              "true"
-
-          },
-
-          body:
-            buffer
-
-        }
-      );
+    const originalPath =
+      `alerts/${Date.now()}-${randomId}.${extension}`;
 
 
-    if (
-      !uploadResponse.ok
-    ) {
+    const imageUrl =
+      await uploadObject({
 
-      const text =
-        await uploadResponse.text();
+        supabaseUrl,
 
-      console.error(
-        "Storage upload:",
-        text
-      );
+        supabaseKey,
 
-      return res.status(500).json({
+        bucket,
 
-        ok: false,
+        objectPath:
+          originalPath,
 
-        error:
-          "No se pudo subir la imagen"
+        data,
+
+        contentType
 
       });
 
-    }
+
+    let iconUrl =
+      imageUrl;
 
 
     /*
-     * Como el bucket es público,
-     * esta URL puede ser utilizada
-     * por el Service Worker.
+     * El icono generado en el navegador
+     * llega como PNG Base64.
      */
 
-    const publicUrl =
-      `${supabaseUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
+    if (
+      iconData
+    ) {
+
+      const iconPath =
+        `alerts/${Date.now()}-${crypto.randomUUID()}-icon.png`;
+
+
+      iconUrl =
+        await uploadObject({
+
+          supabaseUrl,
+
+          supabaseKey,
+
+          bucket,
+
+          objectPath:
+            iconPath,
+
+          data:
+            iconData,
+
+          contentType:
+            "image/png"
+
+        });
+
+    }
 
 
     return res.status(200).json({
 
       ok: true,
 
-      url:
-        publicUrl,
+      imageUrl,
+
+      iconUrl,
 
       filename:
-        filename || "imagen"
+        filename ||
+        "imagen"
 
     });
 
@@ -416,6 +500,7 @@ export default async function handler(
       ok: false,
 
       error:
+        error.message ||
         "Internal server error"
 
     });
