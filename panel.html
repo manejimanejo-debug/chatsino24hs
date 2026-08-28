@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Open 24hs | Panel de Alertas</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0B0D10;
+      color: #F5F5F5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .panel {
+      width: 100%;
+      max-width: 650px;
+      background: #11151A;
+      border: 1px solid rgba(212,175,55,.25);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      color: #D4AF37;
+      font-size: 30px;
+    }
+
+    .subtitle {
+      margin-bottom: 25px;
+      color: #9AA3AD;
+    }
+
+    label {
+      display: block;
+      margin: 18px 0 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #303840;
+      border-radius: 10px;
+      padding: 13px;
+      background: #0B0D10;
+      color: white;
+      font-size: 15px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #D4AF37;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 24px;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      background: #D4AF37;
+      color: #111111;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:hover {
+      filter: brightness(1.05);
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+
+    .status {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 10px;
+      background: #0B0D10;
+      color: #A8B0B8;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .stats {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      background: #0B0D10;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .stat strong {
+      display: block;
+      color: #D4AF37;
+      font-size: 22px;
+      margin-bottom: 5px;
+    }
+
+    .stat span {
+      color: #8F98A1;
+      font-size: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .panel {
+        padding: 20px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="panel">
+
+    <h1>🔔 Panel de Alertas</h1>
+
+    <div class="subtitle">
+      Enviá una notificación a todos los clientes registrados.
+    </div>
+
+    <label for="title">
+      Título
+    </label>
+
+    <input
+      id="title"
+      type="text"
+      value="Open 24hs"
+      maxlength="80"
+    >
+
+    <label for="body">
+      Mensaje
+    </label>
+
+    <textarea
+      id="body"
+      maxlength="500"
+      placeholder="Escribí el mensaje que recibirán tus clientes..."
+    ></textarea>
+
+    <label for="url">
+      URL al tocar la notificación
+    </label>
+
+    <input
+      id="url"
+      type="url"
+      value="https://chatsino24hs.vercel.app"
+    >
+
+    <button id="send">
+      🚀 ENVIAR ALERTA A TODOS
+    </button>
+
+    <div
+      id="status"
+      class="status"
+    ></div>
+
+    <div
+      id="stats"
+      class="stats"
+      style="display:none"
+    >
+      <div class="stat">
+        <strong id="total">0</strong>
+        <span>TOTAL</span>
+      </div>
+
+      <div class="stat">
+        <strong id="sent">0</strong>
+        <span>ENVIADAS</span>
+      </div>
+
+      <div class="stat">
+        <strong id="failed">0</strong>
+        <span>FALLIDAS</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+
+    const button =
+      document.getElementById("send");
+
+    const status =
+      document.getElementById("status");
+
+    const stats =
+      document.getElementById("stats");
+
+    const total =
+      document.getElementById("total");
+
+    const sent =
+      document.getElementById("sent");
+
+    const failed =
+      document.getElementById("failed");
+
+    button.addEventListener(
+      "click",
+      async () => {
+
+        const title =
+          document
+            .getElementById("title")
+            .value
+            .trim();
+
+        const body =
+          document
+            .getElementById("body")
+            .value
+            .trim();
+
+        const url =
+          document
+            .getElementById("url")
+            .value
+            .trim();
+
+        if (!title || !body) {
+
+          alert(
+            "Completá el título y el mensaje."
+          );
+
+          return;
+        }
+
+        const secret =
+          prompt(
+            "Ingresá tu PUSH_ADMIN_SECRET:"
+          );
+
+        if (!secret) {
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent =
+          "⏳ ENVIANDO...";
+
+        status.style.display =
+          "block";
+
+        status.textContent =
+          "Enviando alerta a todos los clientes...";
+
+        stats.style.display =
+          "none";
+
+        try {
+
+          const response =
+            await fetch(
+              "/api/push/broadcast",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  "X-Push-Secret":
+                    secret
+                },
+
+                body:
+                  JSON.stringify({
+                    title,
+                    body,
+                    url
+                  })
+              }
+            );
+
+          const result =
+            await response.json();
+
+          if (
+            !response.ok ||
+            !result.ok
+          ) {
+
+            throw new Error(
+              result.error ||
+              "No se pudo enviar la alerta."
+            );
+
+          }
+
+          status.textContent =
+            "✅ ALERTA ENVIADA CORRECTAMENTE";
+
+          total.textContent =
+            result.total ?? 0;
+
+          sent.textContent =
+            result.sent ?? 0;
+
+          failed.textContent =
+            result.failed ?? 0;
+
+          stats.style.display =
+            "grid";
+
+        } catch (error) {
+
+          status.textContent =
+            "❌ ERROR\n\n" +
+            error.message;
+
+        } finally {
+
+          button.disabled = false;
+
+          button.textContent =
+            "🚀 ENVIAR ALERTA A TODOS";
+
+        }
+
+      }
+    );
+
+  </script>
+
+</body>
+</html>
