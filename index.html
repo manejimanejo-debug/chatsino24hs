@@ -1423,7 +1423,303 @@
     })();
 
   </script>
+<!-- ============================================
+     OPEN 24HS - BOTÓN DE NOTIFICACIONES
+============================================= -->
 
+<button
+  id="push-notification-button"
+  type="button"
+  aria-label="Activar notificaciones"
+  style="
+    display:none;
+    position:fixed;
+    right:18px;
+    bottom:18px;
+    z-index:100000000;
+    border:1px solid rgba(212,175,55,.55);
+    border-radius:999px;
+    padding:11px 16px;
+    background:rgba(17,21,26,.96);
+    color:#D4AF37;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 8px 25px rgba(0,0,0,.35);
+  "
+>
+  🔔 Activar notificaciones
+</button>
+
+<script>
+(() => {
+
+  const VAPID_PUBLIC_KEY =
+    "BGXQGPNvrEZCG4JN60UVGmniiwnwlkQJBK_jISkrqJ72Z_iOd0gKFI5tkDfo8wn5YJytx0PXNOWs698Kw9mypBE";
+
+  const button =
+    document.getElementById("push-notification-button");
+
+  if (!button) return;
+
+  function getClientId() {
+
+    let clientId =
+      localStorage.getItem("open24hs_client_id");
+
+    if (!clientId) {
+
+      clientId =
+        crypto.randomUUID();
+
+      localStorage.setItem(
+        "open24hs_client_id",
+        clientId
+      );
+
+    }
+
+    return clientId;
+  }
+
+  function base64ToUint8Array(base64) {
+
+    const padding =
+      "=".repeat(
+        (4 - (base64.length % 4)) % 4
+      );
+
+    const normalized =
+      (base64 + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const raw =
+      atob(normalized);
+
+    const result =
+      new Uint8Array(raw.length);
+
+    for (
+      let i = 0;
+      i < raw.length;
+      i++
+    ) {
+      result[i] =
+        raw.charCodeAt(i);
+    }
+
+    return result;
+  }
+
+  function ocultarBoton() {
+    button.style.display = "none";
+  }
+
+  function mostrarBoton() {
+
+    button.style.display = "block";
+
+    button.disabled = false;
+
+    button.textContent =
+      "🔔 Activar notificaciones";
+  }
+
+  async function comprobarEstado() {
+
+    try {
+
+      if (
+        !("serviceWorker" in navigator) ||
+        !("PushManager" in window) ||
+        !("Notification" in window)
+      ) {
+
+        mostrarBoton();
+        return;
+
+      }
+
+      const registration =
+        await navigator.serviceWorker.register(
+          "/service-worker.js",
+          { scope: "/" }
+        );
+
+      await navigator.serviceWorker.ready;
+
+      const subscription =
+        await registration.pushManager
+          .getSubscription();
+
+      if (
+        subscription &&
+        Notification.permission === "granted"
+      ) {
+
+        ocultarBoton();
+
+      } else {
+
+        mostrarBoton();
+
+      }
+
+    } catch (error) {
+
+      console.warn(
+        "Push status:",
+        error
+      );
+
+      mostrarBoton();
+
+    }
+
+  }
+
+  async function activarNotificaciones() {
+
+    const permission =
+      await Notification.requestPermission();
+
+    if (permission !== "granted") {
+
+      throw new Error(
+        "No se concedió permiso para las notificaciones."
+      );
+
+    }
+
+    const registration =
+      await navigator.serviceWorker.register(
+        "/service-worker.js",
+        { scope: "/" }
+      );
+
+    await navigator.serviceWorker.ready;
+
+    let subscription =
+      await registration.pushManager
+        .getSubscription();
+
+    if (!subscription) {
+
+      subscription =
+        await registration.pushManager.subscribe({
+
+          userVisibleOnly: true,
+
+          applicationServerKey:
+            base64ToUint8Array(
+              VAPID_PUBLIC_KEY
+            )
+
+        });
+
+    }
+
+    const response =
+      await fetch(
+        "/api/push/subscribe",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+
+              client_id:
+                getClientId(),
+
+              subscription:
+                subscription.toJSON()
+
+            })
+
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !result.ok
+    ) {
+
+      throw new Error(
+        result.details ||
+        result.error ||
+        "No se pudo guardar la suscripción."
+      );
+
+    }
+
+    ocultarBoton();
+
+  }
+
+  button.addEventListener(
+    "click",
+    async () => {
+
+      button.disabled = true;
+
+      button.textContent =
+        "⏳ Activando...";
+
+      try {
+
+        await activarNotificaciones();
+
+      } catch (error) {
+
+        console.error(
+          "OPEN 24HS Push:",
+          error
+        );
+
+        mostrarBoton();
+
+        alert(
+          "No se pudieron activar las notificaciones.\n\n" +
+          error.message
+        );
+
+      }
+
+    }
+  );
+
+  comprobarEstado();
+
+  window.addEventListener(
+    "focus",
+    comprobarEstado
+  );
+
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+
+      if (
+        document.visibilityState === "visible"
+      ) {
+        comprobarEstado();
+      }
+
+    }
+  );
+
+})();
+</script>
 
 </body>
 </html>
