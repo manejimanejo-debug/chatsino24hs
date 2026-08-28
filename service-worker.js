@@ -61,6 +61,23 @@ self.addEventListener(
       "Open 24hs";
 
 
+    /*
+     * Icono:
+     *
+     * 1. icon generado específicamente
+     *    para Android.
+     *
+     * 2. si no existe, imagen grande.
+     *
+     * 3. si no existe, logo.
+     */
+
+    const icon =
+      data.icon ||
+      data.image ||
+      "/icon-192.png";
+
+
     const options = {
 
       body:
@@ -69,20 +86,17 @@ self.addEventListener(
         "Tenés una nueva notificación.",
 
 
-      icon:
-        data.icon ||
-        "/icon-192.png",
+      icon,
 
 
       badge:
         data.badge ||
-        "/icon-192.png",
+        icon,
 
 
       /*
-       * Si el panel cargó una imagen,
-       * Chrome podrá utilizarla como
-       * imagen grande de la notificación.
+       * Imagen grande cuando el navegador
+       * la soporte.
        */
 
       image:
@@ -103,7 +117,7 @@ self.addEventListener(
 
         url:
           data.url ||
-          "/"
+          "https://chatsino24hs.vercel.app"
 
       }
 
@@ -113,8 +127,11 @@ self.addEventListener(
     event.waitUntil(
 
       self.registration.showNotification(
+
         title,
+
         options
+
       )
 
     );
@@ -131,57 +148,77 @@ self.addEventListener(
 
 
     const targetUrl =
+
       event.notification.data &&
       event.notification.data.url
 
         ? event.notification.data.url
 
-        : "/";
+        : "https://chatsino24hs.vercel.app";
 
 
     event.waitUntil(
 
-      clients.matchAll({
+      self.clients
+        .matchAll({
 
-        type:
-          "window",
+          type:
+            "window",
 
-        includeUncontrolled:
-          true
+          includeUncontrolled:
+            true
 
-      })
+        })
 
-      .then(
-        (clientList) => {
+        .then(
+          (clientList) => {
 
-          for (
-            const client
-            of clientList
-          ) {
 
-            if ("focus" in client) {
+            for (
+              const client
+              of clientList
+            ) {
 
-              client.navigate(
+
+              if (
+                "focus"
+                in client
+              ) {
+
+
+                try {
+
+                  client.navigate(
+                    targetUrl
+                  );
+
+                } catch (_) {
+
+                  // Continuamos con focus.
+
+                }
+
+
+                return client.focus();
+
+              }
+
+            }
+
+
+            if (
+              self.clients.openWindow
+            ) {
+
+              return self.clients.openWindow(
                 targetUrl
               );
-
-              return client.focus();
 
             }
 
           }
 
-
-          if (clients.openWindow) {
-
-            return clients.openWindow(
-              targetUrl
-            );
-
-          }
-
-        }
-      )
+        )
 
     );
 
