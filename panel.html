@@ -160,9 +160,10 @@
     .preview img {
       display: block;
       width: 100%;
-      max-height: 220px;
-      object-fit: cover;
+      max-height: 300px;
+      object-fit: contain;
       border-radius: 8px;
+      background: #11151A;
     }
 
     .hint {
@@ -172,7 +173,14 @@
       line-height: 1.4;
     }
 
+    .selected-file {
+      margin-top: 7px;
+      color: #D4AF37;
+      font-size: 12px;
+    }
+
     @media (max-width: 600px) {
+
       .panel {
         padding: 20px;
       }
@@ -180,21 +188,26 @@
       .stats {
         grid-template-columns: 1fr;
       }
+
     }
 
   </style>
 
 </head>
 
+
 <body>
 
   <div class="panel">
 
-    <h1>🔔 Panel de Alertas</h1>
+    <h1>
+      🔔 Panel de Alertas
+    </h1>
 
     <div class="subtitle">
       Enviá una notificación a todos los clientes registrados.
     </div>
+
 
     <label for="title">
       Título
@@ -207,6 +220,7 @@
       maxlength="80"
     >
 
+
     <label for="body">
       Mensaje
     </label>
@@ -217,6 +231,7 @@
       placeholder="Escribí el mensaje que recibirán tus clientes..."
     ></textarea>
 
+
     <label for="image">
       Imagen de la notificación
     </label>
@@ -224,27 +239,38 @@
     <input
       id="image"
       type="file"
-      accept="image/jpeg,image/png,image/webp,image/gif"
+      accept="image/jpeg,image/png,image/webp"
     >
 
     <div class="hint">
-      Seleccioná una imagen desde tu PC. El sistema la sube automáticamente.
-      Límite de 2 MB por imagen.
+      Elegí la imagen directamente desde tu PC.
+      Se generará automáticamente una versión optimizada
+      para el icono de Android.
+      Máximo 2 MB.
     </div>
+
+    <div
+      id="selected-file"
+      class="selected-file"
+    ></div>
+
 
     <div
       id="image-preview"
       class="preview"
     >
+
       <div class="preview-label">
         Vista previa
       </div>
 
       <img
         id="image-preview-img"
-        alt="Vista previa de la imagen"
+        alt="Vista previa"
       >
+
     </div>
+
 
     <label for="url">
       URL al tocar la notificación
@@ -256,70 +282,136 @@
       value="https://chatsino24hs.vercel.app"
     >
 
+
     <button id="send">
       🚀 ENVIAR ALERTA A TODOS
     </button>
+
 
     <div
       id="status"
       class="status"
     ></div>
 
+
     <div
       id="stats"
       class="stats"
       style="display:none"
     >
-      <div class="stat">
-        <strong id="total">0</strong>
-        <span>TOTAL</span>
-      </div>
 
       <div class="stat">
-        <strong id="sent">0</strong>
-        <span>ENVIADAS</span>
+
+        <strong id="total">
+          0
+        </strong>
+
+        <span>
+          TOTAL
+        </span>
+
       </div>
 
+
       <div class="stat">
-        <strong id="failed">0</strong>
-        <span>FALLIDAS</span>
+
+        <strong id="sent">
+          0
+        </strong>
+
+        <span>
+          ENVIADAS
+        </span>
+
       </div>
+
+
+      <div class="stat">
+
+        <strong id="failed">
+          0
+        </strong>
+
+        <span>
+          FALLIDAS
+        </span>
+
+      </div>
+
     </div>
 
   </div>
 
+
   <script>
 
     const button =
-      document.getElementById("send");
+      document.getElementById(
+        "send"
+      );
+
 
     const status =
-      document.getElementById("status");
+      document.getElementById(
+        "status"
+      );
+
 
     const stats =
-      document.getElementById("stats");
+      document.getElementById(
+        "stats"
+      );
+
 
     const total =
-      document.getElementById("total");
+      document.getElementById(
+        "total"
+      );
+
 
     const sent =
-      document.getElementById("sent");
+      document.getElementById(
+        "sent"
+      );
+
 
     const failed =
-      document.getElementById("failed");
+      document.getElementById(
+        "failed"
+      );
+
 
     const imageInput =
-      document.getElementById("image");
+      document.getElementById(
+        "image"
+      );
+
 
     const imagePreview =
-      document.getElementById("image-preview");
+      document.getElementById(
+        "image-preview"
+      );
+
 
     const imagePreviewImg =
-      document.getElementById("image-preview-img");
+      document.getElementById(
+        "image-preview-img"
+      );
+
+
+    const selectedFile =
+      document.getElementById(
+        "selected-file"
+      );
+
 
     const MAX_IMAGE_SIZE =
       2 * 1024 * 1024;
 
+
+    /*
+     * Vista previa
+     */
 
     imageInput.addEventListener(
       "change",
@@ -328,6 +420,7 @@
         const file =
           imageInput.files &&
           imageInput.files[0];
+
 
         if (!file) {
 
@@ -338,13 +431,17 @@
             "src"
           );
 
+          selectedFile.textContent =
+            "";
+
           return;
         }
 
-        if (file.size > MAX_IMAGE_SIZE) {
 
-          imagePreview.style.display =
-            "none";
+        if (
+          file.size >
+          MAX_IMAGE_SIZE
+        ) {
 
           alert(
             "La imagen supera el límite de 2 MB."
@@ -352,73 +449,205 @@
 
           imageInput.value = "";
 
+          imagePreview.style.display =
+            "none";
+
+          selectedFile.textContent =
+            "";
+
           return;
         }
+
+
+        selectedFile.textContent =
+          `✅ ${file.name} — ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+
 
         const reader =
           new FileReader();
 
-        reader.onload = () => {
 
-          imagePreviewImg.src =
-            String(reader.result);
+        reader.onload =
+          () => {
 
-          imagePreview.style.display =
-            "block";
+            imagePreviewImg.src =
+              String(
+                reader.result
+              );
 
-        };
+            imagePreview.style.display =
+              "block";
 
-        reader.readAsDataURL(file);
+          };
+
+
+        reader.readAsDataURL(
+          file
+        );
 
       }
     );
 
 
-    async function uploadImage(
-      file,
-      secret
+    /*
+     * Convierte la imagen seleccionada
+     * en una versión cuadrada de 192x192.
+     */
+
+    async function createIconData(
+      file
     ) {
 
-      if (!file) {
-        return null;
-      }
+      const bitmap =
+        await createImageBitmap(
+          file
+        );
 
-      if (file.size > MAX_IMAGE_SIZE) {
+
+      const canvas =
+        document.createElement(
+          "canvas"
+        );
+
+
+      canvas.width = 192;
+      canvas.height = 192;
+
+
+      const ctx =
+        canvas.getContext(
+          "2d"
+        );
+
+
+      ctx.clearRect(
+        0,
+        0,
+        192,
+        192
+      );
+
+
+      /*
+       * Crop cuadrado centrado.
+       */
+
+      const sourceSize =
+        Math.min(
+          bitmap.width,
+          bitmap.height
+        );
+
+
+      const sourceX =
+        (
+          bitmap.width -
+          sourceSize
+        ) / 2;
+
+
+      const sourceY =
+        (
+          bitmap.height -
+          sourceSize
+        ) / 2;
+
+
+      ctx.drawImage(
+
+        bitmap,
+
+        sourceX,
+        sourceY,
+        sourceSize,
+        sourceSize,
+
+        0,
+        0,
+        192,
+        192
+
+      );
+
+
+      bitmap.close();
+
+
+      const blob =
+        await new Promise(
+          (resolve) => {
+
+            canvas.toBlob(
+              resolve,
+              "image/png"
+            );
+
+          }
+        );
+
+
+      if (!blob) {
 
         throw new Error(
-          "La imagen supera el límite de 2 MB."
+          "No se pudo generar el icono."
         );
 
       }
 
-      const base64 =
-        await new Promise(
-          (resolve, reject) => {
 
-            const reader =
-              new FileReader();
+      return blobToBase64(
+        blob
+      );
 
-            reader.onload = () => {
+    }
+
+
+    /*
+     * Convierte un Blob a Base64.
+     */
+
+    function blobToBase64(
+      blob
+    ) {
+
+      return new Promise(
+        (
+          resolve,
+          reject
+        ) => {
+
+          const reader =
+            new FileReader();
+
+
+          reader.onload =
+            () => {
 
               const result =
                 String(
                   reader.result || ""
                 );
 
-              const commaIndex =
-                result.indexOf(",");
+
+              const comma =
+                result.indexOf(
+                  ","
+                );
+
 
               resolve(
-                commaIndex >= 0
+                comma >= 0
                   ? result.slice(
-                      commaIndex + 1
+                      comma + 1
                     )
                   : result
               );
 
             };
 
-            reader.onerror = () => {
+
+          reader.onerror =
+            () => {
 
               reject(
                 new Error(
@@ -428,11 +657,101 @@
 
             };
 
-            reader.readAsDataURL(
-              file
-            );
 
-          }
+          reader.readAsDataURL(
+            blob
+          );
+
+        }
+      );
+
+    }
+
+
+    /*
+     * Convierte la imagen original a Base64.
+     */
+
+    function fileToBase64(
+      file
+    ) {
+
+      return new Promise(
+        (
+          resolve,
+          reject
+        ) => {
+
+          const reader =
+            new FileReader();
+
+
+          reader.onload =
+            () => {
+
+              const result =
+                String(
+                  reader.result || ""
+                );
+
+
+              const comma =
+                result.indexOf(
+                  ","
+                );
+
+
+              resolve(
+                comma >= 0
+                  ? result.slice(
+                      comma + 1
+                    )
+                  : result
+              );
+
+            };
+
+
+          reader.onerror =
+            () => {
+
+              reject(
+                new Error(
+                  "No se pudo leer la imagen."
+                )
+              );
+
+            };
+
+
+          reader.readAsDataURL(
+            file
+          );
+
+        }
+      );
+
+    }
+
+
+    /*
+     * Sube la imagen original + el icono.
+     */
+
+    async function uploadImage(
+      file,
+      secret
+    ) {
+
+      const originalData =
+        await fileToBase64(
+          file
+        );
+
+
+      const iconData =
+        await createIconData(
+          file
         );
 
 
@@ -440,18 +759,23 @@
         await fetch(
           "/api/push/upload",
           {
-            method: "POST",
+
+            method:
+              "POST",
 
             headers: {
+
               "Content-Type":
                 "application/json",
 
               "X-Push-Secret":
                 secret
+
             },
 
             body:
               JSON.stringify({
+
                 filename:
                   file.name,
 
@@ -459,8 +783,13 @@
                   file.type,
 
                 data:
-                  base64
+                  originalData,
+
+                iconData:
+                  iconData
+
               })
+
           }
         );
 
@@ -482,10 +811,22 @@
       }
 
 
-      return result.url;
+      return {
+
+        image:
+          result.imageUrl,
+
+        icon:
+          result.iconUrl
+
+      };
 
     }
 
+
+    /*
+     * Envío.
+     */
 
     button.addEventListener(
       "click",
@@ -497,17 +838,20 @@
             .value
             .trim();
 
+
         const body =
           document
             .getElementById("body")
             .value
             .trim();
 
+
         const url =
           document
             .getElementById("url")
             .value
             .trim();
+
 
         const file =
           imageInput.files &&
@@ -521,12 +865,14 @@
           );
 
           return;
+
         }
 
 
         if (
           file &&
-          file.size > MAX_IMAGE_SIZE
+          file.size >
+          MAX_IMAGE_SIZE
         ) {
 
           alert(
@@ -534,6 +880,7 @@
           );
 
           return;
+
         }
 
 
@@ -548,16 +895,17 @@
         }
 
 
-        button.disabled = true;
+        button.disabled =
+          true;
+
 
         button.textContent =
           "⏳ PREPARANDO...";
 
+
         status.style.display =
           "block";
 
-        status.textContent =
-          "Preparando la alerta...";
 
         stats.style.display =
           "none";
@@ -565,8 +913,13 @@
 
         try {
 
-          let imageUrl =
-            null;
+          let images = {
+
+            image: null,
+
+            icon: null
+
+          };
 
 
           if (file) {
@@ -574,7 +927,8 @@
             status.textContent =
               "⏳ Subiendo imagen...";
 
-            imageUrl =
+
+            images =
               await uploadImage(
                 file,
                 secret
@@ -591,24 +945,37 @@
             await fetch(
               "/api/push/broadcast",
               {
-                method: "POST",
+
+                method:
+                  "POST",
 
                 headers: {
+
                   "Content-Type":
                     "application/json",
 
                   "X-Push-Secret":
                     secret
+
                 },
 
                 body:
                   JSON.stringify({
+
                     title,
+
                     body,
+
                     image:
-                      imageUrl,
+                      images.image,
+
+                    icon:
+                      images.icon,
+
                     url
+
                   })
+
               }
             );
 
@@ -650,7 +1017,11 @@
             "grid";
 
 
-          imageInput.value = "";
+          imageInput.value =
+            "";
+
+          selectedFile.textContent =
+            "";
 
           imagePreview.style.display =
             "none";
@@ -658,6 +1029,7 @@
           imagePreviewImg.removeAttribute(
             "src"
           );
+
 
         } catch (error) {
 
@@ -667,7 +1039,8 @@
 
         } finally {
 
-          button.disabled = false;
+          button.disabled =
+            false;
 
           button.textContent =
             "🚀 ENVIAR ALERTA A TODOS";
