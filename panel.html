@@ -58,8 +58,7 @@
     }
 
     input,
-    textarea,
-    select {
+    textarea {
       width: 100%;
       border: 1px solid #303840;
       border-radius: 10px;
@@ -70,15 +69,19 @@
       outline: none;
     }
 
+    input:focus,
+    textarea:focus {
+      border-color: #D4AF37;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      cursor: pointer;
+    }
+
     textarea {
       min-height: 130px;
       resize: vertical;
-    }
-
-    input:focus,
-    textarea:focus,
-    select:focus {
-      border-color: #D4AF37;
     }
 
     button {
@@ -139,6 +142,36 @@
       font-size: 12px;
     }
 
+    .preview {
+      display: none;
+      margin-top: 10px;
+      border: 1px solid #303840;
+      border-radius: 10px;
+      padding: 10px;
+      background: #0B0D10;
+    }
+
+    .preview-label {
+      color: #8F98A1;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .preview img {
+      display: block;
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .hint {
+      margin-top: 7px;
+      color: #8F98A1;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     @media (max-width: 600px) {
       .panel {
         padding: 20px;
@@ -183,6 +216,35 @@
       maxlength="500"
       placeholder="Escribí el mensaje que recibirán tus clientes..."
     ></textarea>
+
+    <label for="image">
+      Imagen de la notificación
+    </label>
+
+    <input
+      id="image"
+      type="file"
+      accept="image/jpeg,image/png,image/webp,image/gif"
+    >
+
+    <div class="hint">
+      Seleccioná una imagen desde tu PC. El sistema la sube automáticamente.
+      Límite de 2 MB por imagen.
+    </div>
+
+    <div
+      id="image-preview"
+      class="preview"
+    >
+      <div class="preview-label">
+        Vista previa
+      </div>
+
+      <img
+        id="image-preview-img"
+        alt="Vista previa de la imagen"
+      >
+    </div>
 
     <label for="url">
       URL al tocar la notificación
@@ -246,6 +308,185 @@
     const failed =
       document.getElementById("failed");
 
+    const imageInput =
+      document.getElementById("image");
+
+    const imagePreview =
+      document.getElementById("image-preview");
+
+    const imagePreviewImg =
+      document.getElementById("image-preview-img");
+
+    const MAX_IMAGE_SIZE =
+      2 * 1024 * 1024;
+
+
+    imageInput.addEventListener(
+      "change",
+      () => {
+
+        const file =
+          imageInput.files &&
+          imageInput.files[0];
+
+        if (!file) {
+
+          imagePreview.style.display =
+            "none";
+
+          imagePreviewImg.removeAttribute(
+            "src"
+          );
+
+          return;
+        }
+
+        if (file.size > MAX_IMAGE_SIZE) {
+
+          imagePreview.style.display =
+            "none";
+
+          alert(
+            "La imagen supera el límite de 2 MB."
+          );
+
+          imageInput.value = "";
+
+          return;
+        }
+
+        const reader =
+          new FileReader();
+
+        reader.onload = () => {
+
+          imagePreviewImg.src =
+            String(reader.result);
+
+          imagePreview.style.display =
+            "block";
+
+        };
+
+        reader.readAsDataURL(file);
+
+      }
+    );
+
+
+    async function uploadImage(
+      file,
+      secret
+    ) {
+
+      if (!file) {
+        return null;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE) {
+
+        throw new Error(
+          "La imagen supera el límite de 2 MB."
+        );
+
+      }
+
+      const base64 =
+        await new Promise(
+          (resolve, reject) => {
+
+            const reader =
+              new FileReader();
+
+            reader.onload = () => {
+
+              const result =
+                String(
+                  reader.result || ""
+                );
+
+              const commaIndex =
+                result.indexOf(",");
+
+              resolve(
+                commaIndex >= 0
+                  ? result.slice(
+                      commaIndex + 1
+                    )
+                  : result
+              );
+
+            };
+
+            reader.onerror = () => {
+
+              reject(
+                new Error(
+                  "No se pudo leer la imagen."
+                )
+              );
+
+            };
+
+            reader.readAsDataURL(
+              file
+            );
+
+          }
+        );
+
+
+      const response =
+        await fetch(
+          "/api/push/upload",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              "X-Push-Secret":
+                secret
+            },
+
+            body:
+              JSON.stringify({
+                filename:
+                  file.name,
+
+                contentType:
+                  file.type,
+
+                data:
+                  base64
+              })
+          }
+        );
+
+
+      const result =
+        await response.json();
+
+
+      if (
+        !response.ok ||
+        !result.ok
+      ) {
+
+        throw new Error(
+          result.error ||
+          "No se pudo subir la imagen."
+        );
+
+      }
+
+
+      return result.url;
+
+    }
+
+
     button.addEventListener(
       "click",
       async () => {
@@ -268,6 +509,11 @@
             .value
             .trim();
 
+        const file =
+          imageInput.files &&
+          imageInput.files[0];
+
+
         if (!title || !body) {
 
           alert(
@@ -277,29 +523,69 @@
           return;
         }
 
+
+        if (
+          file &&
+          file.size > MAX_IMAGE_SIZE
+        ) {
+
+          alert(
+            "La imagen supera el límite de 2 MB."
+          );
+
+          return;
+        }
+
+
         const secret =
           prompt(
             "Ingresá tu PUSH_ADMIN_SECRET:"
           );
 
+
         if (!secret) {
           return;
         }
 
+
         button.disabled = true;
+
         button.textContent =
-          "⏳ ENVIANDO...";
+          "⏳ PREPARANDO...";
 
         status.style.display =
           "block";
 
         status.textContent =
-          "Enviando alerta a todos los clientes...";
+          "Preparando la alerta...";
 
         stats.style.display =
           "none";
 
+
         try {
+
+          let imageUrl =
+            null;
+
+
+          if (file) {
+
+            status.textContent =
+              "⏳ Subiendo imagen...";
+
+            imageUrl =
+              await uploadImage(
+                file,
+                secret
+              );
+
+          }
+
+
+          status.textContent =
+            "⏳ Enviando alerta a todos los clientes...";
+
 
           const response =
             await fetch(
@@ -319,13 +605,17 @@
                   JSON.stringify({
                     title,
                     body,
+                    image:
+                      imageUrl,
                     url
                   })
               }
             );
 
+
           const result =
             await response.json();
+
 
           if (
             !response.ok ||
@@ -339,20 +629,35 @@
 
           }
 
+
           status.textContent =
             "✅ ALERTA ENVIADA CORRECTAMENTE";
+
 
           total.textContent =
             result.total ?? 0;
 
+
           sent.textContent =
             result.sent ?? 0;
+
 
           failed.textContent =
             result.failed ?? 0;
 
+
           stats.style.display =
             "grid";
+
+
+          imageInput.value = "";
+
+          imagePreview.style.display =
+            "none";
+
+          imagePreviewImg.removeAttribute(
+            "src"
+          );
 
         } catch (error) {
 
