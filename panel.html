@@ -1145,7 +1145,7 @@
               "POST",
 
             credentials:
-              "same-origin",
+              "include",
 
             headers: {
               "Content-Type":
@@ -1274,6 +1274,49 @@
 
           try {
 
+            /*
+             * Comprobamos primero que la sesión de administrador
+             * siga vigente. La cookie se envía automáticamente.
+             */
+
+            const sessionResponse =
+              await fetch(
+                "/api/admin/me",
+                {
+                  method:
+                    "GET",
+
+                  credentials:
+                    "include",
+
+                  cache:
+                    "no-store"
+                }
+              );
+
+
+            let sessionResult =
+              null;
+
+            try {
+              sessionResult =
+                await sessionResponse.json();
+            } catch (_) {}
+
+
+            if (
+              !sessionResponse.ok ||
+              !sessionResult ||
+              !sessionResult.ok
+            ) {
+
+              throw new Error(
+                "La sesión de administrador no es válida. Volvé a iniciar sesión."
+              );
+
+            }
+
+
             let imageUrl =
               null;
 
@@ -1315,7 +1358,7 @@
                     "POST",
 
                   credentials:
-                    "same-origin",
+                    "include",
 
                   headers: {
                     "Content-Type":
@@ -1338,6 +1381,17 @@
 
             const result =
               await response.json();
+
+
+            if (
+              response.status === 401
+            ) {
+
+              throw new Error(
+                "La sesión de administrador expiró. Recargá la página e iniciá sesión nuevamente."
+              );
+
+            }
 
 
             if (
