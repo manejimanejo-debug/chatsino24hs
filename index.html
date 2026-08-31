@@ -1067,6 +1067,74 @@
 
 
       /*
+       * Sincroniza con el servidor si este navegador
+       * tiene o no una suscripción Push activa.
+       */
+
+      async function syncPushStatus(
+        pushActive
+      ) {
+
+        try {
+
+          const clientId =
+            getClientId();
+
+
+          const response =
+            await fetch(
+              "/api/push/status",
+              {
+                method:
+                  "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body:
+                  JSON.stringify({
+
+                    client_id:
+                      clientId,
+
+                    push_active:
+                      Boolean(
+                        pushActive
+                      )
+
+                  })
+              }
+            );
+
+
+          if (!response.ok) {
+
+            const text =
+              await response.text();
+
+            console.warn(
+              "OPEN 24HS: no se pudo sincronizar el estado Push.",
+              response.status,
+              text
+            );
+
+          }
+
+        } catch (error) {
+
+          console.warn(
+            "OPEN 24HS: error sincronizando el estado Push.",
+            error
+          );
+
+        }
+
+      }
+
+
+      /*
        * Registra automáticamente el client_id
        * de este navegador en customers.
        *
@@ -1335,11 +1403,16 @@
 
           await identifyCustomer();
 
+
           if (
             !("serviceWorker" in navigator) ||
             !("PushManager" in window) ||
             !("Notification" in window)
           ) {
+
+            await syncPushStatus(
+              false
+            );
 
             setButtonDisabledState();
 
@@ -1368,29 +1441,58 @@
               .getSubscription();
 
 
+          const permission =
+            Notification.permission;
+
+
+          /*
+           * ACTIVO:
+           * existe una suscripción y
+           * el permiso está concedido.
+           */
+
           if (
             existingSubscription &&
-            Notification.permission === "granted"
+            permission === "granted"
           ) {
+
+            await syncPushStatus(
+              true
+            );
 
             setButtonEnabledState();
 
           }
 
+          /*
+           * INACTIVO:
+           * no hay suscripción o
+           * el permiso no está concedido.
+           */
+
           else {
+
+            await syncPushStatus(
+              false
+            );
 
             setButtonDisabledState();
 
           }
 
-        }
 
-        catch (error) {
+        } catch (error) {
 
           console.warn(
             "OPEN 24HS: Error comprobando notificaciones.",
             error
           );
+
+
+          await syncPushStatus(
+            false
+          );
+
 
           setButtonDisabledState();
 
