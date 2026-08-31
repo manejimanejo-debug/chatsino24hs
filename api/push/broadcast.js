@@ -1,8 +1,5 @@
 import webpush from "web-push";
-
-import {
-  isAdminAuthenticated
-} from "../_lib/admin-auth.js";
+import { isAdminAuthenticated } from "../_lib/admin-auth.js";
 
 
 export default async function handler(
@@ -13,6 +10,11 @@ export default async function handler(
   res.setHeader(
     "Access-Control-Allow-Origin",
     "same-origin"
+  );
+
+  res.setHeader(
+    "Access-Control-Allow-Credentials",
+    "true"
   );
 
   res.setHeader(
@@ -56,7 +58,7 @@ export default async function handler(
 
   /*
    * =====================================================
-   * AUTENTICACIÓN DEL PANEL
+   * AUTENTICACIÓN DEL ADMINISTRADOR
    * =====================================================
    */
 
@@ -82,18 +84,14 @@ export default async function handler(
     const supabaseUrl =
       process.env.SUPABASE_URL;
 
-
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 
     const vapidPublicKey =
       process.env.VAPID_PUBLIC_KEY;
 
-
     const vapidPrivateKey =
       process.env.VAPID_PRIVATE_KEY;
-
 
     const vapidSubject =
       process.env.VAPID_SUBJECT;
@@ -139,7 +137,7 @@ export default async function handler(
 
     /*
      * =====================================================
-     * DATOS DE LA ALERTA
+     * DATOS
      * =====================================================
      */
 
@@ -166,6 +164,60 @@ export default async function handler(
           "Título y mensaje son obligatorios"
 
       });
+
+    }
+
+
+    /*
+     * =====================================================
+     * VALIDAR IMAGEN
+     * =====================================================
+     */
+
+    let normalizedImage =
+      null;
+
+
+    if (
+      image
+    ) {
+
+      try {
+
+        const imageUrl =
+          new URL(image);
+
+
+        if (
+          imageUrl.protocol !==
+            "https:" &&
+          imageUrl.protocol !==
+            "http:"
+        ) {
+
+          throw new Error(
+            "URL de imagen no válida"
+          );
+
+        }
+
+
+        normalizedImage =
+          imageUrl.toString();
+
+      } catch (_) {
+
+        return res.status(400).json({
+
+          ok:
+            false,
+
+          error:
+            "La URL de la imagen no es válida"
+
+        });
+
+      }
 
     }
 
@@ -210,7 +262,7 @@ export default async function handler(
 
 
       console.error(
-        "Supabase:",
+        "Supabase subscriptions:",
         errorText
       );
 
@@ -233,7 +285,10 @@ export default async function handler(
 
 
     if (
-      !subscriptions.length
+      !Array.isArray(
+        subscriptions
+      ) ||
+      subscriptions.length === 0
     ) {
 
       return res.status(404).json({
@@ -255,46 +310,31 @@ export default async function handler(
      * =====================================================
      */
 
-    const payloadData = {
-
-      title,
-
-      body,
-
-      url:
-        url ||
-        "https://chatsino24hs.vercel.app"
-
-    };
-
-
-    if (
-      image
-    ) {
-
-      payloadData.image =
-        image;
-
-    }
-
-
-    if (
-      icon
-    ) {
-
-      payloadData.icon =
-        icon;
-
-      payloadData.badge =
-        icon;
-
-    }
-
-
     const payload =
-      JSON.stringify(
-        payloadData
-      );
+      JSON.stringify({
+
+        title,
+
+        body,
+
+        ...(normalizedImage
+          ? {
+              image:
+                normalizedImage
+            }
+          : {}),
+
+        ...(icon
+          ? {
+              icon
+            }
+          : {}),
+
+        url:
+          url ||
+          "https://chatsino24hs.vercel.app"
+
+      });
 
 
     let sent =
@@ -306,10 +346,13 @@ export default async function handler(
     let removed =
       0;
 
+    const invalidClientIds =
+      new Set();
+
 
     /*
      * =====================================================
-     * ENVÍO
+     * ENVIAR
      * =====================================================
      */
 
@@ -357,7 +400,7 @@ export default async function handler(
 
         console.error(
 
-          "Error enviando Push:",
+          "Push error:",
 
           error.statusCode,
 
@@ -367,7 +410,8 @@ export default async function handler(
 
 
         /*
-         * Suscripción vencida o eliminada.
+         * 404 / 410 significa que
+         * la suscripción ya no es válida.
          */
 
         if (
@@ -380,7 +424,7 @@ export default async function handler(
             const deleteResponse =
               await fetch(
 
-                `${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${row.id}`,
+                `${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${encodeURIComponent(row.id)}`,
 
                 {
 
@@ -408,15 +452,171 @@ export default async function handler(
 
               removed++;
 
+
+              if (
+                row.client_id
+              ) {
+
+                invalidClientIds.add(
+                  String(
+                    row.client_id
+                  ).trim()
+                );
+
+              }
+
             }
 
-          } catch (_) {
 
-            // Continuamos con los demás clientes.
+          } catch (deleteError) {
+
+            console.error(
+
+              "No se pudo eliminar la suscripción inválida:",
+
+              deleteError
+
+            );
 
           }
 
         }
+
+      }
+
+    }
+
+
+    /*
+     * =====================================================
+     * ACTUALIZAR customers
+     * =====================================================
+     *
+     * Solo marcamos false a un cliente si,
+     * después de eliminar su suscripción inválida,
+     * ya NO tiene ninguna suscripción Push.
+     */
+
+    for (
+      const clientId
+      of invalidClientIds
+    ) {
+
+      try {
+
+        const remainingResponse =
+          await fetch(
+
+            `${supabaseUrl}/rest/v1/push_subscriptions?select=id&client_id=eq.${encodeURIComponent(clientId)}&limit=1`,
+
+            {
+
+              method:
+                "GET",
+
+              headers: {
+
+                apikey:
+                  supabaseKey,
+
+                Authorization:
+                  `Bearer ${supabaseKey}`
+
+              }
+
+            }
+
+          );
+
+
+        if (
+          !remainingResponse.ok
+        ) {
+
+          continue;
+
+        }
+
+
+        const remaining =
+          await remainingResponse.json();
+
+
+        /*
+         * No quedan suscripciones:
+         * marcamos Push como inactivo.
+         */
+
+        if (
+          !Array.isArray(
+            remaining
+          ) ||
+          remaining.length === 0
+        ) {
+
+          const updateCustomerResponse =
+            await fetch(
+
+              `${supabaseUrl}/rest/v1/customers?client_id=eq.${encodeURIComponent(clientId)}`,
+
+              {
+
+                method:
+                  "PATCH",
+
+                headers: {
+
+                  apikey:
+                    supabaseKey,
+
+                  Authorization:
+                    `Bearer ${supabaseKey}`,
+
+                  "Content-Type":
+                    "application/json"
+
+                },
+
+                body:
+                  JSON.stringify({
+
+                    push_active:
+                      false,
+
+                    updated_at:
+                      new Date().toISOString()
+
+                  })
+
+              }
+
+            );
+
+
+          if (
+            !updateCustomerResponse.ok
+          ) {
+
+            console.error(
+
+              "No se pudo marcar inactive al cliente:",
+              clientId
+
+            );
+
+          }
+
+        }
+
+      } catch (syncError) {
+
+        console.error(
+
+          "Error sincronizando customer:",
+          clientId,
+          syncError
+
+        );
 
       }
 
