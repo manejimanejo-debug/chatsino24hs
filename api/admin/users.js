@@ -2,42 +2,76 @@ import {
   isAdminAuthenticated
 } from "../_lib/admin-auth.js";
 
-export default async function handler(req, res) {
 
-  if (req.method !== "GET") {
+export default async function handler(
+  req,
+  res
+) {
+
+  if (
+    req.method !== "GET"
+  ) {
+
     return res.status(405).json({
-      ok: false,
-      error: "Method not allowed"
+
+      ok:
+        false,
+
+      error:
+        "Method not allowed"
+
     });
+
   }
 
-  if (!isAdminAuthenticated(req)) {
+
+  if (
+    !isAdminAuthenticated(req)
+  ) {
+
     return res.status(401).json({
-      ok: false,
-      error: "Unauthorized"
+
+      ok:
+        false,
+
+      error:
+        "Unauthorized"
+
     });
+
   }
+
 
   try {
 
     const supabaseUrl =
       process.env.SUPABASE_URL;
 
+
     const serviceKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 
     if (
       !supabaseUrl ||
       !serviceKey
     ) {
+
       return res.status(500).json({
-        ok: false,
+
+        ok:
+          false,
+
         error:
           "Supabase no está configurado"
+
       });
+
     }
 
+
     const headers = {
+
       apikey:
         serviceKey,
 
@@ -46,20 +80,32 @@ export default async function handler(req, res) {
 
       Accept:
         "application/json"
+
     };
 
+
     /*
-     * Obtenemos los clientes registrados.
+     * =====================================================
+     * CLIENTES
+     * =====================================================
      */
 
     const customersResponse =
       await fetch(
+
         `${supabaseUrl}/rest/v1/customers?select=id,phone,client_id,created_at,updated_at,push_active&order=created_at.desc&limit=5000`,
+
         {
-          method: "GET",
+
+          method:
+            "GET",
+
           headers
+
         }
+
       );
+
 
     if (
       !customersResponse.ok
@@ -68,31 +114,51 @@ export default async function handler(req, res) {
       const text =
         await customersResponse.text();
 
+
       console.error(
+
         "Supabase customers:",
+
         text
+
       );
 
+
       return res.status(500).json({
-        ok: false,
+
+        ok:
+          false,
+
         error:
           "No se pudieron obtener los usuarios."
+
       });
 
     }
 
+
     /*
-     * Obtenemos las suscripciones Push.
+     * =====================================================
+     * SUSCRIPCIONES PUSH
+     * =====================================================
      */
 
     const subscriptionsResponse =
       await fetch(
+
         `${supabaseUrl}/rest/v1/push_subscriptions?select=id,client_id,endpoint,updated_at`,
+
         {
-          method: "GET",
+
+          method:
+            "GET",
+
           headers
+
         }
+
       );
+
 
     if (
       !subscriptionsResponse.ok
@@ -101,32 +167,53 @@ export default async function handler(req, res) {
       const text =
         await subscriptionsResponse.text();
 
+
       console.error(
+
         "Supabase subscriptions:",
+
         text
+
       );
 
+
       return res.status(500).json({
-        ok: false,
+
+        ok:
+          false,
+
         error:
           "No se pudieron obtener las suscripciones Push."
+
       });
 
     }
 
+
     const customers =
       await customersResponse.json();
+
 
     const subscriptions =
       await subscriptionsResponse.json();
 
+
     /*
-     * Todos los client_id que actualmente
-     * tienen una suscripción Push.
+     * =====================================================
+     * ESTADO REAL
+     * =====================================================
+     *
+     * La existencia de una suscripción es la fuente
+     * de verdad para saber si Push está activo.
+     *
+     * Ya NO usamos push_active=true como respaldo,
+     * porque podía dejar clientes activos después
+     * de que la suscripción hubiera desaparecido.
      */
 
     const activeClientIds =
       new Set(
+
         subscriptions
           .map(
             row =>
@@ -136,11 +223,14 @@ export default async function handler(req, res) {
               ).trim()
           )
           .filter(Boolean)
+
       );
 
 
     /*
-     * Unimos customers + Push.
+     * =====================================================
+     * USUARIOS
+     * =====================================================
      */
 
     const users =
@@ -153,28 +243,16 @@ export default async function handler(req, res) {
               ""
             ).trim();
 
+
           const pushActive =
             activeClientIds.has(
               clientId
-            ) ||
-            customer.push_active === true;
+            );
+
 
           return {
 
-            id:
-              customer.id,
-
-            phone:
-              customer.phone,
-
-            client_id:
-              customer.client_id,
-
-            created_at:
-              customer.created_at,
-
-            updated_at:
-              customer.updated_at,
+            ...customer,
 
             push_active:
               pushActive,
@@ -187,13 +265,16 @@ export default async function handler(req, res) {
           };
 
         }
+
       );
 
 
     const active =
       users.filter(
+
         user =>
           user.push_active === true
+
       ).length;
 
 
@@ -201,6 +282,12 @@ export default async function handler(req, res) {
       users.length -
       active;
 
+
+    /*
+     * =====================================================
+     * RESPUESTA
+     * =====================================================
+     */
 
     return res.status(200).json({
 
@@ -222,8 +309,11 @@ export default async function handler(req, res) {
   } catch (error) {
 
     console.error(
+
       "Admin users:",
+
       error
+
     );
 
 
