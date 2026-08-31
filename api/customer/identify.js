@@ -15,33 +15,16 @@ export default async function handler(req, res) {
     "Content-Type"
   );
 
-
-  if (
-    req.method === "OPTIONS"
-  ) {
-
-    return res
-      .status(200)
-      .end();
-
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
   }
 
-
-  if (
-    req.method !== "POST"
-  ) {
-
+  if (req.method !== "POST") {
     return res.status(405).json({
-
       ok: false,
-
-      error:
-        "Method not allowed"
-
+      error: "Method not allowed"
     });
-
   }
-
 
   try {
 
@@ -50,66 +33,29 @@ export default async function handler(req, res) {
         req.body?.client_id || ""
       ).trim();
 
-
-    if (
-      !clientId
-    ) {
-
+    if (!clientId) {
       return res.status(400).json({
-
         ok: false,
-
         error:
           "client_id es obligatorio"
-
       });
-
     }
-
-
-    if (
-      clientId.length > 120
-    ) {
-
-      return res.status(400).json({
-
-        ok: false,
-
-        error:
-          "client_id no válido"
-
-      });
-
-    }
-
 
     const supabaseUrl =
       process.env.SUPABASE_URL;
 
-
     const serviceKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-
-    if (
-      !supabaseUrl ||
-      !serviceKey
-    ) {
-
+    if (!supabaseUrl || !serviceKey) {
       return res.status(500).json({
-
         ok: false,
-
         error:
           "Supabase no está configurado"
-
       });
-
     }
 
-
     const headers = {
-
       apikey:
         serviceKey,
 
@@ -118,65 +64,49 @@ export default async function handler(req, res) {
 
       "Content-Type":
         "application/json"
-
     };
 
-
     /*
-     * Primero buscamos si ya existe
-     * este client_id.
+     * PRIMERO: comprobar si existe.
      */
 
     const searchResponse =
       await fetch(
-
         `${supabaseUrl}/rest/v1/customers?select=id,client_id,push_active&client_id=eq.${encodeURIComponent(clientId)}&limit=1`,
-
         {
-
-          method:
-            "GET",
-
+          method: "GET",
           headers
-
         }
-
       );
 
+    const searchText =
+      await searchResponse.text();
 
-    if (
-      !searchResponse.ok
-    ) {
-
-      const text =
-        await searchResponse.text();
-
-
-      console.error(
-        "Customer search:",
-        text
-      );
-
+    if (!searchResponse.ok) {
 
       return res.status(500).json({
 
         ok: false,
 
-        error:
-          "No se pudo consultar el cliente"
+        step: "SELECT",
+
+        status:
+          searchResponse.status,
+
+        supabase:
+          searchText
 
       });
 
     }
 
-
     const existing =
-      await searchResponse.json();
-
+      searchText
+        ? JSON.parse(searchText)
+        : [];
 
     /*
-     * Si ya existe, solamente
-     * actualizamos updated_at.
+     * SI EXISTE: actualizamos.
      */
 
     if (
@@ -187,14 +117,10 @@ export default async function handler(req, res) {
       const customerId =
         existing[0].id;
 
-
       const updateResponse =
         await fetch(
-
           `${supabaseUrl}/rest/v1/customers?id=eq.${encodeURIComponent(customerId)}`,
-
           {
-
             method:
               "PATCH",
 
@@ -202,47 +128,36 @@ export default async function handler(req, res) {
 
             body:
               JSON.stringify({
-
                 updated_at:
                   new Date().toISOString()
-
               })
-
           }
-
         );
 
+      const updateText =
+        await updateResponse.text();
 
-      if (
-        !updateResponse.ok
-      ) {
-
-        const text =
-          await updateResponse.text();
-
-
-        console.error(
-          "Customer update:",
-          text
-        );
-
+      if (!updateResponse.ok) {
 
         return res.status(500).json({
 
           ok: false,
 
-          error:
-            "No se pudo actualizar el cliente"
+          step: "UPDATE",
+
+          status:
+            updateResponse.status,
+
+          supabase:
+            updateText
 
         });
 
       }
 
-
       return res.status(200).json({
 
-        ok:
-          true,
+        ok: true,
 
         client_id:
           clientId,
@@ -254,28 +169,22 @@ export default async function handler(req, res) {
 
     }
 
-
     /*
-     * Si no existe, lo creamos.
+     * SI NO EXISTE: INSERT.
      */
 
     const insertResponse =
       await fetch(
-
         `${supabaseUrl}/rest/v1/customers`,
-
         {
-
           method:
             "POST",
 
           headers: {
-
             ...headers,
 
             Prefer:
               "return=representation"
-
           },
 
           body:
@@ -297,42 +206,33 @@ export default async function handler(req, res) {
                 new Date().toISOString()
 
             })
-
         }
-
       );
 
+    const insertText =
+      await insertResponse.text();
 
-    if (
-      !insertResponse.ok
-    ) {
-
-      const text =
-        await insertResponse.text();
-
-
-      console.error(
-        "Customer insert:",
-        text
-      );
-
+    if (!insertResponse.ok) {
 
       return res.status(500).json({
 
         ok: false,
 
-        error:
-          "No se pudo crear el cliente"
+        step: "INSERT",
+
+        status:
+          insertResponse.status,
+
+        supabase:
+          insertText
 
       });
 
     }
 
-
     return res.status(200).json({
 
-      ok:
-        true,
+      ok: true,
 
       client_id:
         clientId,
@@ -342,7 +242,6 @@ export default async function handler(req, res) {
 
     });
 
-
   } catch (error) {
 
     console.error(
@@ -350,12 +249,12 @@ export default async function handler(req, res) {
       error
     );
 
-
     return res.status(500).json({
 
       ok: false,
 
       error:
+        error.message ||
         "Internal server error"
 
     });
