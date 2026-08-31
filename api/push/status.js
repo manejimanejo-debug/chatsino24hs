@@ -16,7 +16,9 @@ export default async function handler(req, res) {
   );
 
 
-  if (req.method === "OPTIONS") {
+  if (
+    req.method === "OPTIONS"
+  ) {
 
     return res
       .status(200)
@@ -25,11 +27,17 @@ export default async function handler(req, res) {
   }
 
 
-  if (req.method !== "POST") {
+  if (
+    req.method !== "POST"
+  ) {
 
     return res.status(405).json({
+
       ok: false,
-      error: "Method not allowed"
+
+      error:
+        "Method not allowed"
+
     });
 
   }
@@ -49,12 +57,17 @@ export default async function handler(req, res) {
       );
 
 
-    if (!clientId) {
+    if (
+      !clientId
+    ) {
 
       return res.status(400).json({
+
         ok: false,
+
         error:
           "client_id es obligatorio"
+
       });
 
     }
@@ -74,20 +87,36 @@ export default async function handler(req, res) {
     ) {
 
       return res.status(500).json({
+
         ok: false,
+
         error:
           "Supabase no está configurado"
+
       });
 
     }
 
 
+    const headers = {
+
+      apikey:
+        serviceKey,
+
+      Authorization:
+        `Bearer ${serviceKey}`,
+
+      "Content-Type":
+        "application/json"
+
+    };
+
+
     /*
-     * Actualizamos solamente clientes
-     * que ya se registraron.
+     * Actualizamos el estado del cliente.
      */
 
-    const response =
+    const customerResponse =
       await fetch(
 
         `${supabaseUrl}/rest/v1/customers?client_id=eq.${encodeURIComponent(clientId)}`,
@@ -97,21 +126,7 @@ export default async function handler(req, res) {
           method:
             "PATCH",
 
-          headers: {
-
-            apikey:
-              serviceKey,
-
-            Authorization:
-              `Bearer ${serviceKey}`,
-
-            "Content-Type":
-              "application/json",
-
-            Prefer:
-              "return=minimal"
-
-          },
+          headers,
 
           body:
             JSON.stringify({
@@ -129,15 +144,19 @@ export default async function handler(req, res) {
       );
 
 
-    if (!response.ok) {
+    const customerText =
+      await customerResponse.text();
 
-      const text =
-        await response.text();
+
+    if (
+      !customerResponse.ok
+    ) {
 
       console.error(
-        "Supabase push status:",
-        text
+        "Customer push status:",
+        customerText
       );
+
 
       return res.status(500).json({
 
@@ -151,10 +170,60 @@ export default async function handler(req, res) {
     }
 
 
+    /*
+     * Si el usuario DESACTIVÓ Push,
+     * eliminamos sus suscripciones.
+     *
+     * Esto evita que el broadcast intente
+     * enviar posteriormente a ese dispositivo.
+     */
+
+    if (
+      pushActive === false
+    ) {
+
+      const deleteResponse =
+        await fetch(
+
+          `${supabaseUrl}/rest/v1/push_subscriptions?client_id=eq.${encodeURIComponent(clientId)}`,
+
+          {
+
+            method:
+              "DELETE",
+
+            headers
+
+          }
+
+        );
+
+
+      const deleteText =
+        await deleteResponse.text();
+
+
+      if (
+        !deleteResponse.ok
+      ) {
+
+        console.warn(
+          "No se pudieron eliminar las suscripciones Push:",
+          deleteText
+        );
+
+      }
+
+    }
+
+
     return res.status(200).json({
 
       ok:
         true,
+
+      client_id:
+        clientId,
 
       push_active:
         pushActive
