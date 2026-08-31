@@ -1,5 +1,9 @@
 import webpush from "web-push";
 
+import {
+  isAdminAuthenticated
+} from "../_lib/admin-auth.js";
+
 
 export default async function handler(
   req,
@@ -8,19 +12,17 @@ export default async function handler(
 
   res.setHeader(
     "Access-Control-Allow-Origin",
-    "*"
+    "same-origin"
   );
-
 
   res.setHeader(
     "Access-Control-Allow-Methods",
     "POST, OPTIONS"
   );
 
-
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, X-Push-Secret"
+    "Content-Type"
   );
 
 
@@ -41,7 +43,8 @@ export default async function handler(
 
     return res.status(405).json({
 
-      ok: false,
+      ok:
+        false,
 
       error:
         "Method not allowed"
@@ -51,31 +54,30 @@ export default async function handler(
   }
 
 
+  /*
+   * =====================================================
+   * AUTENTICACIÓN DEL PANEL
+   * =====================================================
+   */
+
+  if (
+    !isAdminAuthenticated(req)
+  ) {
+
+    return res.status(401).json({
+
+      ok:
+        false,
+
+      error:
+        "Unauthorized"
+
+    });
+
+  }
+
+
   try {
-
-    const secret =
-      req.headers[
-        "x-push-secret"
-      ];
-
-
-    if (
-      !secret ||
-      secret !==
-        process.env.PUSH_ADMIN_SECRET
-    ) {
-
-      return res.status(401).json({
-
-        ok: false,
-
-        error:
-          "Unauthorized"
-
-      });
-
-    }
-
 
     const supabaseUrl =
       process.env.SUPABASE_URL;
@@ -107,7 +109,8 @@ export default async function handler(
 
       return res.status(500).json({
 
-        ok: false,
+        ok:
+          false,
 
         error:
           "Servidor no configurado"
@@ -116,6 +119,12 @@ export default async function handler(
 
     }
 
+
+    /*
+     * =====================================================
+     * CONFIGURACIÓN VAPID
+     * =====================================================
+     */
 
     webpush.setVapidDetails(
 
@@ -127,6 +136,12 @@ export default async function handler(
 
     );
 
+
+    /*
+     * =====================================================
+     * DATOS DE LA ALERTA
+     * =====================================================
+     */
 
     const {
       title,
@@ -144,7 +159,8 @@ export default async function handler(
 
       return res.status(400).json({
 
-        ok: false,
+        ok:
+          false,
 
         error:
           "Título y mensaje son obligatorios"
@@ -155,7 +171,9 @@ export default async function handler(
 
 
     /*
-     * Obtenemos todas las suscripciones.
+     * =====================================================
+     * OBTENER SUSCRIPCIONES
+     * =====================================================
      */
 
     const response =
@@ -199,7 +217,8 @@ export default async function handler(
 
       return res.status(500).json({
 
-        ok: false,
+        ok:
+          false,
 
         error:
           "No se pudieron obtener las suscripciones"
@@ -219,7 +238,8 @@ export default async function handler(
 
       return res.status(404).json({
 
-        ok: false,
+        ok:
+          false,
 
         error:
           "No hay clientes suscriptos"
@@ -230,7 +250,9 @@ export default async function handler(
 
 
     /*
-     * Payload de la notificación.
+     * =====================================================
+     * PAYLOAD
+     * =====================================================
      */
 
     const payloadData = {
@@ -275,15 +297,20 @@ export default async function handler(
       );
 
 
-    let sent = 0;
+    let sent =
+      0;
 
-    let failed = 0;
+    let failed =
+      0;
 
-    let removed = 0;
+    let removed =
+      0;
 
 
     /*
-     * Enviamos a todos.
+     * =====================================================
+     * ENVÍO
+     * =====================================================
      */
 
     for (
@@ -330,7 +357,7 @@ export default async function handler(
 
         console.error(
 
-          "Push error:",
+          "Error enviando Push:",
 
           error.statusCode,
 
@@ -340,19 +367,12 @@ export default async function handler(
 
 
         /*
-         * Si el navegador ya no tiene
-         * esa suscripción, limpiamos
-         * el registro.
+         * Suscripción vencida o eliminada.
          */
 
         if (
-
-          error.statusCode ===
-            404 ||
-
-          error.statusCode ===
-            410
-
+          error.statusCode === 404 ||
+          error.statusCode === 410
         ) {
 
           try {
@@ -392,7 +412,7 @@ export default async function handler(
 
           } catch (_) {
 
-            // Continuar con los demás clientes.
+            // Continuamos con los demás clientes.
 
           }
 
@@ -403,9 +423,16 @@ export default async function handler(
     }
 
 
+    /*
+     * =====================================================
+     * RESPUESTA
+     * =====================================================
+     */
+
     return res.status(200).json({
 
-      ok: true,
+      ok:
+        true,
 
       total:
         subscriptions.length,
@@ -432,7 +459,8 @@ export default async function handler(
 
     return res.status(500).json({
 
-      ok: false,
+      ok:
+        false,
 
       error:
         "Internal server error"
