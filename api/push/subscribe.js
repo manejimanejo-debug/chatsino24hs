@@ -16,7 +16,9 @@ export default async function handler(req, res) {
   );
 
 
-  if (req.method === "OPTIONS") {
+  if (
+    req.method === "OPTIONS"
+  ) {
 
     return res
       .status(200)
@@ -25,7 +27,9 @@ export default async function handler(req, res) {
   }
 
 
-  if (req.method !== "POST") {
+  if (
+    req.method !== "POST"
+  ) {
 
     return res.status(405).json({
 
@@ -45,6 +49,28 @@ export default async function handler(req, res) {
       client_id,
       subscription
     } = req.body || {};
+
+
+    const clientId =
+      String(
+        client_id || ""
+      ).trim();
+
+
+    if (
+      !clientId
+    ) {
+
+      return res.status(400).json({
+
+        ok: false,
+
+        error:
+          "client_id es obligatorio"
+
+      });
+
+    }
 
 
     if (
@@ -89,16 +115,30 @@ export default async function handler(req, res) {
     }
 
 
+    const headers = {
+
+      apikey:
+        supabaseKey,
+
+      Authorization:
+        `Bearer ${supabaseKey}`,
+
+      "Content-Type":
+        "application/json"
+
+    };
+
+
     /*
-     * Guardamos únicamente las columnas
-     * que existen realmente en
-     * push_subscriptions.
+     * =====================================================
+     * 1. GUARDAR / ACTUALIZAR LA SUSCRIPCIÓN PUSH
+     * =====================================================
      */
 
     const pushData = {
 
       client_id:
-        client_id || null,
+        clientId,
 
       endpoint:
         subscription.endpoint,
@@ -112,9 +152,8 @@ export default async function handler(req, res) {
         null,
 
       user_agent:
-        req.headers[
-          "user-agent"
-        ] || null,
+        req.headers["user-agent"] ||
+        null,
 
       updated_at:
         new Date().toISOString()
@@ -122,51 +161,38 @@ export default async function handler(req, res) {
     };
 
 
-    const response =
+    /*
+     * Primero comprobamos si ya existe
+     * ese endpoint.
+     */
+
+    const existingPushResponse =
       await fetch(
 
-        `${supabaseUrl}/rest/v1/push_subscriptions`,
+        `${supabaseUrl}/rest/v1/push_subscriptions?select=id&endpoint=eq.${encodeURIComponent(subscription.endpoint)}&limit=1`,
 
         {
-
           method:
-            "POST",
+            "GET",
 
-          headers: {
-
-            apikey:
-              supabaseKey,
-
-            Authorization:
-              `Bearer ${supabaseKey}`,
-
-            "Content-Type":
-              "application/json",
-
-            Prefer:
-              "resolution=merge-duplicates"
-
-          },
-
-          body:
-            JSON.stringify(
-              pushData
-            )
+          headers
 
         }
 
       );
 
 
-    const text =
-      await response.text();
+    const existingPushText =
+      await existingPushResponse.text();
 
 
-    if (!response.ok) {
+    if (
+      !existingPushResponse.ok
+    ) {
 
       console.error(
-        "Supabase subscribe:",
-        text
+        "Push subscription SELECT:",
+        existingPushText
       );
 
       return res.status(500).json({
@@ -174,43 +200,226 @@ export default async function handler(req, res) {
         ok: false,
 
         error:
-          "No se pudo guardar la suscripción"
+          "No se pudo comprobar la suscripción"
 
       });
 
     }
 
 
+    const existingPush =
+      existingPushText
+        ? JSON.parse(
+            existingPushText
+          )
+        : [];
+
+
     /*
-     * Si el cliente ya está registrado
-     * por teléfono, marcamos su Push
-     * como activo.
+     * Si ya existe, actualizamos.
      */
 
-    if (client_id) {
+    if (
+      Array.isArray(existingPush) &&
+      existingPush.length > 0
+    ) {
 
-      const customerResponse =
+      const pushId =
+        existingPush[0].id;
+
+
+      const updatePushResponse =
         await fetch(
 
-          `${supabaseUrl}/rest/v1/customers?client_id=eq.${encodeURIComponent(client_id)}`,
+          `${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${encodeURIComponent(pushId)}`,
 
           {
 
             method:
               "PATCH",
 
+            headers,
+
+            body:
+              JSON.stringify(
+                pushData
+              )
+
+          }
+
+        );
+
+
+      const updatePushText =
+        await updatePushResponse.text();
+
+
+      if (
+        !updatePushResponse.ok
+      ) {
+
+        console.error(
+          "Push subscription UPDATE:",
+          updatePushText
+        );
+
+        return res.status(500).json({
+
+          ok: false,
+
+          error:
+            "No se pudo actualizar la suscripción"
+
+        });
+
+      }
+
+    }
+
+    /*
+     * Si no existe, creamos.
+     */
+
+    else {
+
+      const insertPushResponse =
+        await fetch(
+
+          `${supabaseUrl}/rest/v1/push_subscriptions`,
+
+          {
+
+            method:
+              "POST",
+
             headers: {
 
-              apikey:
-                supabaseKey,
+              ...headers,
 
-              Authorization:
-                `Bearer ${supabaseKey}`,
-
-              "Content-Type":
-                "application/json"
+              Prefer:
+                "return=minimal"
 
             },
+
+            body:
+              JSON.stringify(
+                pushData
+              )
+
+          }
+
+        );
+
+
+      const insertPushText =
+        await insertPushResponse.text();
+
+
+      if (
+        !insertPushResponse.ok
+      ) {
+
+        console.error(
+          "Push subscription INSERT:",
+          insertPushText
+        );
+
+        return res.status(500).json({
+
+          ok: false,
+
+          error:
+            "No se pudo guardar la suscripción"
+
+        });
+
+      }
+
+    }
+
+
+    /*
+     * =====================================================
+     * 2. ASEGURAR QUE EL CLIENTE EXISTA EN customers
+     * =====================================================
+     */
+
+
+    const customerSearchResponse =
+      await fetch(
+
+        `${supabaseUrl}/rest/v1/customers?select=id,client_id&client_id=eq.${encodeURIComponent(clientId)}&limit=1`,
+
+        {
+
+          method:
+            "GET",
+
+          headers
+
+        }
+
+      );
+
+
+    const customerSearchText =
+      await customerSearchResponse.text();
+
+
+    if (
+      !customerSearchResponse.ok
+    ) {
+
+      console.error(
+        "Customer SELECT:",
+        customerSearchText
+      );
+
+      return res.status(500).json({
+
+        ok: false,
+
+        error:
+          "No se pudo consultar el cliente"
+
+      });
+
+    }
+
+
+    const existingCustomer =
+      customerSearchText
+        ? JSON.parse(
+            customerSearchText
+          )
+        : [];
+
+
+    /*
+     * Si el cliente YA existe,
+     * lo marcamos como Push activo.
+     */
+
+    if (
+      Array.isArray(existingCustomer) &&
+      existingCustomer.length > 0
+    ) {
+
+      const customerId =
+        existingCustomer[0].id;
+
+
+      const customerUpdateResponse =
+        await fetch(
+
+          `${supabaseUrl}/rest/v1/customers?id=eq.${encodeURIComponent(customerId)}`,
+
+          {
+
+            method:
+              "PATCH",
+
+            headers,
 
             body:
               JSON.stringify({
@@ -228,25 +437,128 @@ export default async function handler(req, res) {
         );
 
 
+      const customerUpdateText =
+        await customerUpdateResponse.text();
+
+
       if (
-        !customerResponse.ok
+        !customerUpdateResponse.ok
       ) {
 
-        console.warn(
-          "No se pudo actualizar push_active del cliente."
+        console.error(
+          "Customer UPDATE:",
+          customerUpdateText
         );
+
+        return res.status(500).json({
+
+          ok: false,
+
+          error:
+            "Se guardó Push pero no se pudo actualizar el cliente"
+
+        });
+
+      }
+
+    }
+
+    /*
+     * Si NO existe, lo creamos automáticamente.
+     */
+
+    else {
+
+      const customerInsertResponse =
+        await fetch(
+
+          `${supabaseUrl}/rest/v1/customers`,
+
+          {
+
+            method:
+              "POST",
+
+            headers: {
+
+              ...headers,
+
+              Prefer:
+                "return=minimal"
+
+            },
+
+            body:
+              JSON.stringify({
+
+                phone:
+                  null,
+
+                client_id:
+                  clientId,
+
+                push_active:
+                  true,
+
+                created_at:
+                  new Date().toISOString(),
+
+                updated_at:
+                  new Date().toISOString()
+
+              })
+
+          }
+
+        );
+
+
+      const customerInsertText =
+        await customerInsertResponse.text();
+
+
+      if (
+        !customerInsertResponse.ok
+      ) {
+
+        console.error(
+          "Customer INSERT:",
+          customerInsertText
+        );
+
+        return res.status(500).json({
+
+          ok: false,
+
+          error:
+            "Se guardó Push pero no se pudo crear el cliente"
+
+        });
 
       }
 
     }
 
 
+    /*
+     * =====================================================
+     * 3. RESPUESTA FINAL
+     * =====================================================
+     */
+
     return res.status(200).json({
 
-      ok: true,
+      ok:
+        true,
 
       message:
-        "Notificaciones activadas"
+        "Notificaciones activadas",
+
+      client_id:
+        clientId,
+
+      push_active:
+        true
 
     });
 
