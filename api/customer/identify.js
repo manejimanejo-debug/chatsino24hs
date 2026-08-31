@@ -16,7 +16,9 @@ export default async function handler(req, res) {
   );
 
 
-  if (req.method === "OPTIONS") {
+  if (
+    req.method === "OPTIONS"
+  ) {
 
     return res
       .status(200)
@@ -25,7 +27,9 @@ export default async function handler(req, res) {
   }
 
 
-  if (req.method !== "POST") {
+  if (
+    req.method !== "POST"
+  ) {
 
     return res.status(405).json({
 
@@ -47,7 +51,9 @@ export default async function handler(req, res) {
       ).trim();
 
 
-    if (!clientId) {
+    if (
+      !clientId
+    ) {
 
       return res.status(400).json({
 
@@ -60,10 +66,6 @@ export default async function handler(req, res) {
 
     }
 
-
-    /*
-     * Evitamos IDs demasiado grandes.
-     */
 
     if (
       clientId.length > 120
@@ -106,19 +108,161 @@ export default async function handler(req, res) {
     }
 
 
+    const headers = {
+
+      apikey:
+        serviceKey,
+
+      Authorization:
+        `Bearer ${serviceKey}`,
+
+      "Content-Type":
+        "application/json"
+
+    };
+
+
     /*
-     * Registramos automáticamente
-     * el client_id.
-     *
-     * El teléfono queda vacío (NULL)
-     * hasta que posteriormente
-     * decidamos asociarlo.
+     * Primero buscamos si ya existe
+     * este client_id.
      */
 
-    const response =
+    const searchResponse =
       await fetch(
 
-        `${supabaseUrl}/rest/v1/customers?on_conflict=client_id`,
+        `${supabaseUrl}/rest/v1/customers?select=id,client_id,push_active&client_id=eq.${encodeURIComponent(clientId)}&limit=1`,
+
+        {
+
+          method:
+            "GET",
+
+          headers
+
+        }
+
+      );
+
+
+    if (
+      !searchResponse.ok
+    ) {
+
+      const text =
+        await searchResponse.text();
+
+
+      console.error(
+        "Customer search:",
+        text
+      );
+
+
+      return res.status(500).json({
+
+        ok: false,
+
+        error:
+          "No se pudo consultar el cliente"
+
+      });
+
+    }
+
+
+    const existing =
+      await searchResponse.json();
+
+
+    /*
+     * Si ya existe, solamente
+     * actualizamos updated_at.
+     */
+
+    if (
+      Array.isArray(existing) &&
+      existing.length > 0
+    ) {
+
+      const customerId =
+        existing[0].id;
+
+
+      const updateResponse =
+        await fetch(
+
+          `${supabaseUrl}/rest/v1/customers?id=eq.${encodeURIComponent(customerId)}`,
+
+          {
+
+            method:
+              "PATCH",
+
+            headers,
+
+            body:
+              JSON.stringify({
+
+                updated_at:
+                  new Date().toISOString()
+
+              })
+
+          }
+
+        );
+
+
+      if (
+        !updateResponse.ok
+      ) {
+
+        const text =
+          await updateResponse.text();
+
+
+        console.error(
+          "Customer update:",
+          text
+        );
+
+
+        return res.status(500).json({
+
+          ok: false,
+
+          error:
+            "No se pudo actualizar el cliente"
+
+        });
+
+      }
+
+
+      return res.status(200).json({
+
+        ok:
+          true,
+
+        client_id:
+          clientId,
+
+        existing:
+          true
+
+      });
+
+    }
+
+
+    /*
+     * Si no existe, lo creamos.
+     */
+
+    const insertResponse =
+      await fetch(
+
+        `${supabaseUrl}/rest/v1/customers`,
 
         {
 
@@ -127,17 +271,10 @@ export default async function handler(req, res) {
 
           headers: {
 
-            apikey:
-              serviceKey,
-
-            Authorization:
-              `Bearer ${serviceKey}`,
-
-            "Content-Type":
-              "application/json",
+            ...headers,
 
             Prefer:
-              "resolution=merge-duplicates,return=representation"
+              "return=representation"
 
           },
 
@@ -146,6 +283,15 @@ export default async function handler(req, res) {
 
               client_id:
                 clientId,
+
+              phone:
+                null,
+
+              push_active:
+                false,
+
+              created_at:
+                new Date().toISOString(),
 
               updated_at:
                 new Date().toISOString()
@@ -157,18 +303,17 @@ export default async function handler(req, res) {
       );
 
 
-    if (!response.ok) {
+    if (
+      !insertResponse.ok
+    ) {
 
       const text =
-        await response.text();
+        await insertResponse.text();
 
 
       console.error(
-
-        "Customer identify Supabase:",
-
+        "Customer insert:",
         text
-
       );
 
 
@@ -177,7 +322,7 @@ export default async function handler(req, res) {
         ok: false,
 
         error:
-          "No se pudo registrar el client_id"
+          "No se pudo crear el cliente"
 
       });
 
@@ -190,7 +335,10 @@ export default async function handler(req, res) {
         true,
 
       client_id:
-        clientId
+        clientId,
+
+      existing:
+        false
 
     });
 
@@ -198,11 +346,8 @@ export default async function handler(req, res) {
   } catch (error) {
 
     console.error(
-
       "Customer identify error:",
-
       error
-
     );
 
 
