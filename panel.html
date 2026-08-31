@@ -1,21 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>Open 24hs | Panel de Alertas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open 24hs | Administrador</title>
 
   <style>
-
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -23,31 +14,44 @@
       font-family: Arial, Helvetica, sans-serif;
       background: #0B0D10;
       color: #F5F5F5;
+    }
+
+    .hidden { display: none !important; }
+
+    .center {
+      min-height: 100vh;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       padding: 20px;
     }
 
-    .panel {
-      width: 100%;
-      max-width: 650px;
+    .card,
+    .section {
       background: #11151A;
       border: 1px solid rgba(212,175,55,.25);
       border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 430px;
       padding: 28px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.45);
     }
 
-    h1 {
-      margin: 0 0 8px;
+    h1, h2 {
+      margin: 0;
       color: #D4AF37;
-      font-size: 30px;
     }
 
-    .subtitle {
-      margin-bottom: 25px;
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; }
+
+    .muted {
       color: #9AA3AD;
+      font-size: 13px;
+      line-height: 1.45;
     }
 
     label {
@@ -57,8 +61,7 @@
       font-weight: 700;
     }
 
-    input,
-    textarea {
+    input, textarea, select {
       width: 100%;
       border: 1px solid #303840;
       border-radius: 10px;
@@ -69,8 +72,7 @@
       outline: none;
     }
 
-    input:focus,
-    textarea:focus {
+    input:focus, textarea:focus, select:focus {
       border-color: #D4AF37;
     }
 
@@ -80,52 +82,105 @@
     }
 
     textarea {
-      min-height: 130px;
+      min-height: 120px;
       resize: vertical;
     }
 
     button {
-      width: 100%;
-      margin-top: 24px;
-      border: none;
-      border-radius: 12px;
-      padding: 15px;
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 16px;
       background: #D4AF37;
-      color: #111111;
-      font-size: 16px;
+      color: #111;
+      font-size: 14px;
       font-weight: 800;
       cursor: pointer;
     }
 
-    button:hover {
-      filter: brightness(1.05);
-    }
-
     button:disabled {
-      opacity: .6;
+      opacity: .55;
       cursor: default;
     }
 
+    .full { width: 100%; }
+
+    .secondary {
+      background: #242B33;
+      color: #FFF;
+    }
+
     .status {
-      margin-top: 18px;
-      padding: 14px;
-      border-radius: 10px;
-      background: #0B0D10;
+      margin-top: 12px;
+      min-height: 20px;
       color: #A8B0B8;
       white-space: pre-wrap;
-      display: none;
+      font-size: 13px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 22px;
+      background: rgba(17,21,26,.96);
+      border-bottom: 1px solid #252C34;
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      color: #D4AF37;
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 18px 22px 0;
+    }
+
+    .tab {
+      background: #1A2026;
+      color: #A8B0B8;
+    }
+
+    .tab.active {
+      background: #D4AF37;
+      color: #111;
+    }
+
+    .content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .section {
+      padding: 22px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
     }
 
     .stats {
-      margin-top: 20px;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
+      margin-top: 18px;
     }
 
     .stat {
       background: #0B0D10;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 15px;
       text-align: center;
     }
@@ -133,8 +188,8 @@
     .stat strong {
       display: block;
       color: #D4AF37;
-      font-size: 22px;
-      margin-bottom: 5px;
+      font-size: 24px;
+      margin-bottom: 4px;
     }
 
     .stat span {
@@ -145,16 +200,10 @@
     .preview {
       display: none;
       margin-top: 10px;
+      padding: 10px;
       border: 1px solid #303840;
       border-radius: 10px;
-      padding: 10px;
       background: #0B0D10;
-    }
-
-    .preview-label {
-      color: #8F98A1;
-      font-size: 12px;
-      margin-bottom: 8px;
     }
 
     .preview img {
@@ -163,221 +212,643 @@
       max-height: 300px;
       object-fit: contain;
       border-radius: 8px;
-      background: #11151A;
     }
 
-    .hint {
-      margin-top: 7px;
-      color: #8F98A1;
-      font-size: 12px;
-      line-height: 1.4;
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .selected-file {
-      margin-top: 7px;
+    .search-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .search-row input {
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .search-row select {
+      width: auto;
+      min-width: 220px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 15px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #252C34;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
       color: #D4AF37;
       font-size: 12px;
+      text-transform: uppercase;
     }
 
-    @media (max-width: 600px) {
-
-      .panel {
-        padding: 20px;
-      }
-
-      .stats {
-        grid-template-columns: 1fr;
-      }
-
+    .push-active {
+      color: #59D98E;
+      font-weight: 800;
     }
 
+    .push-inactive {
+      color: #FF7777;
+      font-weight: 800;
+    }
+
+    .empty {
+      color: #8F98A1;
+      padding: 20px 0;
+      text-align: center;
+    }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+      .topbar { flex-wrap: wrap; }
+    }
   </style>
-
 </head>
-
 
 <body>
 
-  <div class="panel">
+  <div id="login-view" class="center">
+    <div class="card login-card">
+      <h1>🔐 Open 24hs</h1>
 
-    <h1>
-      🔔 Panel de Alertas
-    </h1>
+      <p class="muted">
+        Panel de administración.
+      </p>
 
-    <div class="subtitle">
-      Enviá una notificación a todos los clientes registrados.
-    </div>
+      <label for="admin-password">
+        Contraseña
+      </label>
 
-
-    <label for="title">
-      Título
-    </label>
-
-    <input
-      id="title"
-      type="text"
-      value="Open 24hs"
-      maxlength="80"
-    >
-
-
-    <label for="body">
-      Mensaje
-    </label>
-
-    <textarea
-      id="body"
-      maxlength="500"
-      placeholder="Escribí el mensaje que recibirán tus clientes..."
-    ></textarea>
-
-
-    <label for="image">
-      Imagen de la notificación
-    </label>
-
-    <input
-      id="image"
-      type="file"
-      accept="image/jpeg,image/png,image/webp"
-    >
-
-    <div class="hint">
-      Elegí la imagen directamente desde tu PC.
-      Se generará automáticamente una versión optimizada
-      para el icono de Android.
-      Máximo 2 MB.
-    </div>
-
-    <div
-      id="selected-file"
-      class="selected-file"
-    ></div>
-
-
-    <div
-      id="image-preview"
-      class="preview"
-    >
-
-      <div class="preview-label">
-        Vista previa
-      </div>
-
-      <img
-        id="image-preview-img"
-        alt="Vista previa"
+      <input
+        id="admin-password"
+        type="password"
+        autocomplete="current-password"
+        placeholder="••••••••••••"
       >
 
+      <button
+        id="login-button"
+        class="full"
+        style="margin-top:18px;"
+      >
+        INGRESAR
+      </button>
+
+      <div
+        id="login-status"
+        class="status"
+      ></div>
     </div>
+  </div>
 
 
-    <label for="url">
-      URL al tocar la notificación
-    </label>
+  <div id="dashboard" class="hidden">
 
-    <input
-      id="url"
-      type="url"
-      value="https://chatsino24hs.vercel.app"
-    >
-
-
-    <button id="send">
-      🚀 ENVIAR ALERTA A TODOS
-    </button>
-
-
-    <div
-      id="status"
-      class="status"
-    ></div>
-
-
-    <div
-      id="stats"
-      class="stats"
-      style="display:none"
-    >
-
-      <div class="stat">
-
-        <strong id="total">
-          0
-        </strong>
-
-        <span>
-          TOTAL
-        </span>
-
+    <header class="topbar">
+      <div class="brand">
+        OPEN 24HS · ADMIN
       </div>
 
-
-      <div class="stat">
-
-        <strong id="sent">
-          0
-        </strong>
-
-        <span>
-          ENVIADAS
-        </span>
-
-      </div>
+      <button
+        id="logout-button"
+        class="secondary"
+      >
+        CERRAR SESIÓN
+      </button>
+    </header>
 
 
-      <div class="stat">
+    <nav class="tabs">
 
-        <strong id="failed">
-          0
-        </strong>
+      <button
+        class="tab active"
+        data-section="alerts-section"
+      >
+        🔔 Alertas
+      </button>
 
-        <span>
-          FALLIDAS
-        </span>
+      <button
+        class="tab"
+        data-section="users-section"
+      >
+        👥 Usuarios
+      </button>
 
-      </div>
+    </nav>
 
-    </div>
+
+    <main class="content">
+
+      <!-- ALERTAS -->
+      <section
+        id="alerts-section"
+        class="section"
+      >
+
+        <h2>
+          Enviar alerta
+        </h2>
+
+        <p class="muted">
+          La alerta se enviará a los dispositivos Push activos.
+        </p>
+
+        <div class="grid">
+
+          <div>
+
+            <label for="title">
+              Título
+            </label>
+
+            <input
+              id="title"
+              type="text"
+              value="Open 24hs"
+              maxlength="80"
+            >
+
+            <label for="body">
+              Mensaje
+            </label>
+
+            <textarea
+              id="body"
+              maxlength="500"
+              placeholder="Escribí el mensaje..."
+            ></textarea>
+
+          </div>
+
+
+          <div>
+
+            <label for="image">
+              Imagen
+            </label>
+
+            <input
+              id="image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+            >
+
+            <p class="muted">
+              Seleccioná una imagen desde tu PC. Máximo 2 MB.
+            </p>
+
+            <div
+              id="image-preview"
+              class="preview"
+            >
+              <img
+                id="image-preview-img"
+                alt="Vista previa"
+              >
+            </div>
+
+
+            <label for="url">
+              URL al tocar
+            </label>
+
+            <input
+              id="url"
+              type="url"
+              value="https://chatsino24hs.vercel.app"
+            >
+
+          </div>
+
+        </div>
+
+
+        <button
+          id="send-alert"
+          class="full"
+          style="margin-top:22px;"
+        >
+          🚀 ENVIAR ALERTA A TODOS
+        </button>
+
+
+        <div
+          id="alert-status"
+          class="status"
+        ></div>
+
+
+        <div
+          id="alert-stats"
+          class="stats hidden"
+        >
+
+          <div class="stat">
+            <strong id="alert-total">0</strong>
+            <span>TOTAL</span>
+          </div>
+
+          <div class="stat">
+            <strong id="alert-sent">0</strong>
+            <span>ENVIADAS</span>
+          </div>
+
+          <div class="stat">
+            <strong id="alert-failed">0</strong>
+            <span>FALLIDAS</span>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- USUARIOS -->
+      <section
+        id="users-section"
+        class="section hidden"
+      >
+
+        <div class="toolbar">
+
+          <div>
+            <h2 style="margin-bottom:5px;">
+              Usuarios registrados
+            </h2>
+
+            <div
+              id="users-count"
+              class="muted"
+            >
+              Cargando...
+            </div>
+
+            <div
+              id="push-summary"
+              class="muted"
+              style="margin-top:5px;"
+            >
+              🟢 Push activos: 0 · 🔴 Inactivos: 0
+            </div>
+          </div>
+
+          <button
+            id="refresh-users"
+            class="secondary"
+          >
+            ↻ ACTUALIZAR
+          </button>
+
+        </div>
+
+
+        <div class="search-row">
+
+          <select id="push-filter">
+
+            <option value="all">
+              Todos
+            </option>
+
+            <option value="active">
+              🟢 Push activo
+            </option>
+
+            <option value="inactive">
+              🔴 Push inactivo
+            </option>
+
+          </select>
+
+
+          <input
+            id="user-search"
+            type="search"
+            placeholder="Buscar por teléfono o client ID..."
+          >
+
+        </div>
+
+
+        <div class="table-wrap">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>Teléfono</th>
+                <th>Notificaciones</th>
+                <th>Client ID</th>
+                <th>Registrado</th>
+                <th>Actualizado</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="users-body"></tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </main>
 
   </div>
 
 
   <script>
 
-    const button =
+    const loginView =
       document.getElementById(
-        "send"
+        "login-view"
+      );
+
+    const dashboard =
+      document.getElementById(
+        "dashboard"
+      );
+
+    const loginButton =
+      document.getElementById(
+        "login-button"
+      );
+
+    const passwordInput =
+      document.getElementById(
+        "admin-password"
+      );
+
+    const loginStatus =
+      document.getElementById(
+        "login-status"
       );
 
 
-    const status =
-      document.getElementById(
-        "status"
+    async function checkSession() {
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/admin/me",
+            {
+              credentials:
+                "same-origin"
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (
+          result.ok
+        ) {
+
+          showDashboard();
+
+        }
+
+      } catch (_) {}
+
+    }
+
+
+    function showDashboard() {
+
+      loginView.classList.add(
+        "hidden"
+      );
+
+      dashboard.classList.remove(
+        "hidden"
+      );
+
+      loadUsers();
+
+    }
+
+
+    async function doLogin() {
+
+      const password =
+        passwordInput.value;
+
+
+      if (!password) {
+
+        loginStatus.textContent =
+          "Ingresá tu contraseña.";
+
+        return;
+
+      }
+
+
+      loginButton.disabled =
+        true;
+
+
+      loginStatus.textContent =
+        "⏳ Verificando...";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/admin/login",
+            {
+              method:
+                "POST",
+
+              credentials:
+                "same-origin",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+                  password
+                })
+            }
+          );
+
+
+        const result =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !result.ok
+        ) {
+
+          throw new Error(
+            result.error ||
+            "No se pudo iniciar sesión."
+          );
+
+        }
+
+
+        passwordInput.value =
+          "";
+
+        loginStatus.textContent =
+          "";
+
+        showDashboard();
+
+
+      } catch (error) {
+
+        loginStatus.textContent =
+          "❌ " +
+          error.message;
+
+      } finally {
+
+        loginButton.disabled =
+          false;
+
+      }
+
+    }
+
+
+    loginButton.addEventListener(
+      "click",
+      doLogin
+    );
+
+
+    passwordInput.addEventListener(
+      "keydown",
+      (event) => {
+
+        if (
+          event.key === "Enter"
+        ) {
+
+          doLogin();
+
+        }
+
+      }
+    );
+
+
+    document
+      .getElementById(
+        "logout-button"
+      )
+      .addEventListener(
+        "click",
+        async () => {
+
+          await fetch(
+            "/api/admin/logout",
+            {
+              method:
+                "POST",
+              credentials:
+                "same-origin"
+            }
+          );
+
+          location.reload();
+
+        }
       );
 
 
-    const stats =
-      document.getElementById(
-        "stats"
-      );
+    document
+      .querySelectorAll(
+        ".tab"
+      )
+      .forEach(
+        (tab) => {
+
+          tab.addEventListener(
+            "click",
+            () => {
+
+              document
+                .querySelectorAll(
+                  ".tab"
+                )
+                .forEach(
+                  (item) =>
+                    item.classList.remove(
+                      "active"
+                    )
+                );
+
+              document
+                .querySelectorAll(
+                  ".section"
+                )
+                .forEach(
+                  (section) =>
+                    section.classList.add(
+                      "hidden"
+                    )
+                );
+
+              tab.classList.add(
+                "active"
+              );
+
+              document
+                .getElementById(
+                  tab.dataset.section
+                )
+                .classList.remove(
+                  "hidden"
+                );
 
 
-    const total =
-      document.getElementById(
-        "total"
-      );
+              if (
+                tab.dataset.section ===
+                "users-section"
+              ) {
 
+                loadUsers();
 
-    const sent =
-      document.getElementById(
-        "sent"
-      );
+              }
 
+            }
+          );
 
-    const failed =
-      document.getElementById(
-        "failed"
+        }
       );
 
 
@@ -386,32 +857,16 @@
         "image"
       );
 
-
     const imagePreview =
       document.getElementById(
         "image-preview"
       );
-
 
     const imagePreviewImg =
       document.getElementById(
         "image-preview-img"
       );
 
-
-    const selectedFile =
-      document.getElementById(
-        "selected-file"
-      );
-
-
-    const MAX_IMAGE_SIZE =
-      2 * 1024 * 1024;
-
-
-    /*
-     * Vista previa
-     */
 
     imageInput.addEventListener(
       "change",
@@ -431,36 +886,29 @@
             "src"
           );
 
-          selectedFile.textContent =
-            "";
-
           return;
+
         }
 
 
         if (
           file.size >
-          MAX_IMAGE_SIZE
+          2 * 1024 * 1024
         ) {
 
           alert(
             "La imagen supera el límite de 2 MB."
           );
 
-          imageInput.value = "";
+          imageInput.value =
+            "";
 
           imagePreview.style.display =
             "none";
 
-          selectedFile.textContent =
-            "";
-
           return;
+
         }
-
-
-        selectedFile.textContent =
-          `✅ ${file.name} — ${(file.size / 1024 / 1024).toFixed(2)} MB`;
 
 
         const reader =
@@ -489,122 +937,9 @@
     );
 
 
-    /*
-     * Convierte la imagen seleccionada
-     * en una versión cuadrada de 192x192.
-     */
+    const MAX_IMAGE_SIZE =
+      2 * 1024 * 1024;
 
-    async function createIconData(
-      file
-    ) {
-
-      const bitmap =
-        await createImageBitmap(
-          file
-        );
-
-
-      const canvas =
-        document.createElement(
-          "canvas"
-        );
-
-
-      canvas.width = 192;
-      canvas.height = 192;
-
-
-      const ctx =
-        canvas.getContext(
-          "2d"
-        );
-
-
-      ctx.clearRect(
-        0,
-        0,
-        192,
-        192
-      );
-
-
-      /*
-       * Crop cuadrado centrado.
-       */
-
-      const sourceSize =
-        Math.min(
-          bitmap.width,
-          bitmap.height
-        );
-
-
-      const sourceX =
-        (
-          bitmap.width -
-          sourceSize
-        ) / 2;
-
-
-      const sourceY =
-        (
-          bitmap.height -
-          sourceSize
-        ) / 2;
-
-
-      ctx.drawImage(
-
-        bitmap,
-
-        sourceX,
-        sourceY,
-        sourceSize,
-        sourceSize,
-
-        0,
-        0,
-        192,
-        192
-
-      );
-
-
-      bitmap.close();
-
-
-      const blob =
-        await new Promise(
-          (resolve) => {
-
-            canvas.toBlob(
-              resolve,
-              "image/png"
-            );
-
-          }
-        );
-
-
-      if (!blob) {
-
-        throw new Error(
-          "No se pudo generar el icono."
-        );
-
-      }
-
-
-      return blobToBase64(
-        blob
-      );
-
-    }
-
-
-    /*
-     * Convierte un Blob a Base64.
-     */
 
     function blobToBase64(
       blob
@@ -623,39 +958,32 @@
           reader.onload =
             () => {
 
-              const result =
+              const text =
                 String(
                   reader.result || ""
                 );
 
-
               const comma =
-                result.indexOf(
-                  ","
-                );
-
+                text.indexOf(",");
 
               resolve(
                 comma >= 0
-                  ? result.slice(
+                  ? text.slice(
                       comma + 1
                     )
-                  : result
+                  : text
               );
 
             };
 
 
           reader.onerror =
-            () => {
-
+            () =>
               reject(
                 new Error(
                   "No se pudo leer la imagen."
                 )
               );
-
-            };
 
 
           reader.readAsDataURL(
@@ -668,80 +996,134 @@
     }
 
 
-    /*
-     * Convierte la imagen original a Base64.
-     */
-
-    function fileToBase64(
+    async function createIconBase64(
       file
     ) {
 
-      return new Promise(
+      if (
+        !window.createImageBitmap
+      ) {
+
+        return null;
+
+      }
+
+
+      const bitmap =
+        await createImageBitmap(
+          file
+        );
+
+
+      const canvas =
+        document.createElement(
+          "canvas"
+        );
+
+
+      canvas.width =
+        192;
+
+      canvas.height =
+        192;
+
+
+      const ctx =
+        canvas.getContext(
+          "2d"
+        );
+
+
+      const size =
+        Math.min(
+          bitmap.width,
+          bitmap.height
+        );
+
+
+      const sx =
         (
-          resolve,
-          reject
-        ) => {
-
-          const reader =
-            new FileReader();
+          bitmap.width -
+          size
+        ) / 2;
 
 
-          reader.onload =
-            () => {
-
-              const result =
-                String(
-                  reader.result || ""
-                );
+      const sy =
+        (
+          bitmap.height -
+          size
+        ) / 2;
 
 
-              const comma =
-                result.indexOf(
-                  ","
-                );
+      ctx.drawImage(
+        bitmap,
+        sx,
+        sy,
+        size,
+        size,
+        0,
+        0,
+        192,
+        192
+      );
 
 
-              resolve(
-                comma >= 0
-                  ? result.slice(
-                      comma + 1
-                    )
-                  : result
-              );
-
-            };
+      bitmap.close();
 
 
-          reader.onerror =
-            () => {
-
-              reject(
-                new Error(
-                  "No se pudo leer la imagen."
-                )
-              );
-
-            };
+      const blob =
+        await new Promise(
+          resolve =>
+            canvas.toBlob(
+              resolve,
+              "image/png"
+            )
+        );
 
 
-          reader.readAsDataURL(
-            file
-          );
+      if (!blob) {
+        return null;
+      }
 
-        }
+
+      return blobToBase64(
+        blob
       );
 
     }
 
 
-    /*
-     * Sube la imagen original + el icono.
-     */
-
-    async function uploadImage(
-      file,
-      secret
+    async function fileToBase64(
+      file
     ) {
+
+      return blobToBase64(
+        file
+      );
+
+    }
+
+
+    async function uploadSelectedImage(
+      file
+    ) {
+
+      if (!file) {
+        return null;
+      }
+
+
+      if (
+        file.size >
+        MAX_IMAGE_SIZE
+      ) {
+
+        throw new Error(
+          "La imagen supera el límite de 2 MB."
+        );
+
+      }
+
 
       const originalData =
         await fileToBase64(
@@ -750,7 +1132,7 @@
 
 
       const iconData =
-        await createIconData(
+        await createIconBase64(
           file
         );
 
@@ -759,37 +1141,28 @@
         await fetch(
           "/api/push/upload",
           {
-
             method:
               "POST",
 
+            credentials:
+              "same-origin",
+
             headers: {
-
               "Content-Type":
-                "application/json",
-
-              "X-Push-Secret":
-                secret
-
+                "application/json"
             },
 
             body:
               JSON.stringify({
-
                 filename:
                   file.name,
-
                 contentType:
                   file.type,
-
                 data:
                   originalData,
-
                 iconData:
                   iconData
-
               })
-
           }
         );
 
@@ -811,244 +1184,519 @@
       }
 
 
-      return {
-
-        image:
-          result.imageUrl,
-
-        icon:
-          result.iconUrl
-
-      };
+      return result;
 
     }
 
 
-    /*
-     * Envío.
-     */
+    document
+      .getElementById(
+        "send-alert"
+      )
+      .addEventListener(
+        "click",
+        async () => {
 
-    button.addEventListener(
-      "click",
-      async () => {
-
-        const title =
-          document
-            .getElementById("title")
-            .value
-            .trim();
-
-
-        const body =
-          document
-            .getElementById("body")
-            .value
-            .trim();
+          const title =
+            document
+              .getElementById(
+                "title"
+              )
+              .value
+              .trim();
 
 
-        const url =
-          document
-            .getElementById("url")
-            .value
-            .trim();
+          const body =
+            document
+              .getElementById(
+                "body"
+              )
+              .value
+              .trim();
 
 
-        const file =
-          imageInput.files &&
-          imageInput.files[0];
+          const url =
+            document
+              .getElementById(
+                "url"
+              )
+              .value
+              .trim();
 
 
-        if (!title || !body) {
-
-          alert(
-            "Completá el título y el mensaje."
-          );
-
-          return;
-
-        }
+          const file =
+            imageInput.files &&
+            imageInput.files[0];
 
 
-        if (
-          file &&
-          file.size >
-          MAX_IMAGE_SIZE
-        ) {
-
-          alert(
-            "La imagen supera el límite de 2 MB."
-          );
-
-          return;
-
-        }
-
-
-        const secret =
-          prompt(
-            "Ingresá tu PUSH_ADMIN_SECRET:"
-          );
-
-
-        if (!secret) {
-          return;
-        }
-
-
-        button.disabled =
-          true;
-
-
-        button.textContent =
-          "⏳ PREPARANDO...";
-
-
-        status.style.display =
-          "block";
-
-
-        stats.style.display =
-          "none";
-
-
-        try {
-
-          let images = {
-
-            image: null,
-
-            icon: null
-
-          };
-
-
-          if (file) {
-
-            status.textContent =
-              "⏳ Subiendo imagen...";
-
-
-            images =
-              await uploadImage(
-                file,
-                secret
+          const sendButton =
+            document
+              .getElementById(
+                "send-alert"
               );
 
-          }
+
+          const alertStatus =
+            document
+              .getElementById(
+                "alert-status"
+              );
 
 
-          status.textContent =
-            "⏳ Enviando alerta a todos los clientes...";
-
-
-          const response =
-            await fetch(
-              "/api/push/broadcast",
-              {
-
-                method:
-                  "POST",
-
-                headers: {
-
-                  "Content-Type":
-                    "application/json",
-
-                  "X-Push-Secret":
-                    secret
-
-                },
-
-                body:
-                  JSON.stringify({
-
-                    title,
-
-                    body,
-
-                    image:
-                      images.image,
-
-                    icon:
-                      images.icon,
-
-                    url
-
-                  })
-
-              }
-            );
-
-
-          const result =
-            await response.json();
+          const alertStats =
+            document
+              .getElementById(
+                "alert-stats"
+              );
 
 
           if (
-            !response.ok ||
-            !result.ok
+            !title ||
+            !body
           ) {
 
-            throw new Error(
-              result.error ||
-              "No se pudo enviar la alerta."
+            alert(
+              "Completá título y mensaje."
             );
+
+            return;
 
           }
 
 
-          status.textContent =
-            "✅ ALERTA ENVIADA CORRECTAMENTE";
+          sendButton.disabled =
+            true;
 
 
-          total.textContent =
-            result.total ?? 0;
+          alertStatus.textContent =
+            "⏳ Preparando alerta...";
 
 
-          sent.textContent =
-            result.sent ?? 0;
+          try {
+
+            let imageUrl =
+              null;
+
+            let iconUrl =
+              null;
 
 
-          failed.textContent =
-            result.failed ?? 0;
+            if (file) {
+
+              alertStatus.textContent =
+                "⏳ Subiendo imagen...";
 
 
-          stats.style.display =
-            "grid";
+              const uploaded =
+                await uploadSelectedImage(
+                  file
+                );
 
 
-          imageInput.value =
-            "";
+              imageUrl =
+                uploaded.imageUrl;
 
-          selectedFile.textContent =
-            "";
 
-          imagePreview.style.display =
-            "none";
+              iconUrl =
+                uploaded.iconUrl;
 
-          imagePreviewImg.removeAttribute(
-            "src"
+            }
+
+
+            alertStatus.textContent =
+              "⏳ Enviando a todos los clientes...";
+
+
+            const response =
+              await fetch(
+                "/api/push/broadcast",
+                {
+                  method:
+                    "POST",
+
+                  credentials:
+                    "same-origin",
+
+                  headers: {
+                    "Content-Type":
+                      "application/json"
+                  },
+
+                  body:
+                    JSON.stringify({
+                      title,
+                      body,
+                      image:
+                        imageUrl,
+                      icon:
+                        iconUrl,
+                      url
+                    })
+                }
+              );
+
+
+            const result =
+              await response.json();
+
+
+            if (
+              !response.ok ||
+              !result.ok
+            ) {
+
+              throw new Error(
+                result.error ||
+                "No se pudo enviar la alerta."
+              );
+
+            }
+
+
+            alertStatus.textContent =
+              "✅ ALERTA ENVIADA CORRECTAMENTE";
+
+
+            document
+              .getElementById(
+                "alert-total"
+              )
+              .textContent =
+              result.total ?? 0;
+
+
+            document
+              .getElementById(
+                "alert-sent"
+              )
+              .textContent =
+              result.sent ?? 0;
+
+
+            document
+              .getElementById(
+                "alert-failed"
+              )
+              .textContent =
+              result.failed ?? 0;
+
+
+            alertStats.classList.remove(
+              "hidden"
+            );
+
+
+            imageInput.value =
+              "";
+
+            imagePreview.style.display =
+              "none";
+
+          } catch (error) {
+
+            alertStatus.textContent =
+              "❌ " +
+              error.message;
+
+          } finally {
+
+            sendButton.disabled =
+              false;
+
+          }
+
+        }
+      );
+
+
+    let allUsers = [];
+
+
+    async function loadUsers() {
+
+      const tbody =
+        document.getElementById(
+          "users-body"
+        );
+
+
+      const count =
+        document.getElementById(
+          "users-count"
+        );
+
+
+      tbody.innerHTML =
+        `<tr><td colspan="5" class="empty">Cargando...</td></tr>`;
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/admin/users",
+            {
+              credentials:
+                "same-origin"
+            }
           );
 
 
-        } catch (error) {
+        if (
+          response.status ===
+          401
+        ) {
 
-          status.textContent =
-            "❌ ERROR\n\n" +
-            error.message;
+          location.reload();
 
-        } finally {
-
-          button.disabled =
-            false;
-
-          button.textContent =
-            "🚀 ENVIAR ALERTA A TODOS";
+          return;
 
         }
 
+
+        const result =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !result.ok
+        ) {
+
+          throw new Error(
+            result.error ||
+            "No se pudieron cargar los usuarios."
+          );
+
+        }
+
+
+        allUsers =
+          result.users ||
+          [];
+
+
+        count.textContent =
+          `${allUsers.length} usuarios registrados`;
+
+
+        document
+          .getElementById(
+            "push-summary"
+          )
+          .textContent =
+          `🟢 Push activos: ${result.active ?? 0} · 🔴 Inactivos: ${result.inactive ?? 0}`;
+
+
+        renderUsers();
+
+
+      } catch (error) {
+
+        count.textContent =
+          error.message;
+
+
+        tbody.innerHTML =
+          `<tr><td colspan="5" class="empty">No se pudieron cargar los usuarios.</td></tr>`;
+
       }
-    );
+
+    }
+
+
+    function renderUsers() {
+
+      const query =
+        document
+          .getElementById(
+            "user-search"
+          )
+          .value
+          .trim()
+          .toLowerCase();
+
+
+      const filter =
+        document
+          .getElementById(
+            "push-filter"
+          )
+          .value;
+
+
+      const tbody =
+        document.getElementById(
+          "users-body"
+        );
+
+
+      const filtered =
+        allUsers.filter(
+          (user) => {
+
+            const phone =
+              String(
+                user.phone || ""
+              )
+              .toLowerCase();
+
+
+            const clientId =
+              String(
+                user.client_id || ""
+              )
+              .toLowerCase();
+
+
+            const searchMatch =
+              phone.includes(query) ||
+              clientId.includes(query);
+
+
+            const filterMatch =
+              filter === "all" ||
+              (
+                filter === "active" &&
+                user.push_active === true
+              ) ||
+              (
+                filter === "inactive" &&
+                user.push_active !== true
+              );
+
+
+            return (
+              searchMatch &&
+              filterMatch
+            );
+
+          }
+        );
+
+
+      if (
+        !filtered.length
+      ) {
+
+        tbody.innerHTML =
+          `<tr><td colspan="5" class="empty">No hay usuarios que coincidan.</td></tr>`;
+
+        return;
+
+      }
+
+
+      tbody.innerHTML =
+        filtered
+          .map(
+            (user) => {
+
+              const created =
+                user.created_at
+                  ? new Date(
+                      user.created_at
+                    ).toLocaleString(
+                      "es-AR"
+                    )
+                  : "-";
+
+
+              const updated =
+                user.updated_at
+                  ? new Date(
+                      user.updated_at
+                    ).toLocaleString(
+                      "es-AR"
+                    )
+                  : "-";
+
+
+              const pushStatus =
+                user.push_active === true
+                  ? '<span class="push-active">🟢 Activo</span>'
+                  : '<span class="push-inactive">🔴 Inactivo</span>';
+
+
+              return `
+                <tr>
+                  <td>${escapeHtml(user.phone || "-")}</td>
+                  <td>${pushStatus}</td>
+                  <td>${escapeHtml(user.client_id || "-")}</td>
+                  <td>${escapeHtml(created)}</td>
+                  <td>${escapeHtml(updated)}</td>
+                </tr>
+              `;
+
+            }
+          )
+          .join("");
+
+    }
+
+
+    function escapeHtml(
+      value
+    ) {
+
+      return String(
+        value
+      )
+      .replace(
+        /&/g,
+        "&amp;"
+      )
+      .replace(
+        /</g,
+        "&lt;"
+      )
+      .replace(
+        />/g,
+        "&gt;"
+      )
+      .replace(
+        /"/g,
+        "&quot;"
+      )
+      .replace(
+        /'/g,
+        "&#039;"
+      );
+
+    }
+
+
+    document
+      .getElementById(
+        "user-search"
+      )
+      .addEventListener(
+        "input",
+        renderUsers
+      );
+
+
+    document
+      .getElementById(
+        "push-filter"
+      )
+      .addEventListener(
+        "change",
+        renderUsers
+      );
+
+
+    document
+      .getElementById(
+        "refresh-users"
+      )
+      .addEventListener(
+        "click",
+        loadUsers
+      );
+
+
+    checkSession();
 
   </script>
 
