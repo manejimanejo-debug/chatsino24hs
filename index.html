@@ -1066,6 +1066,55 @@
       }
 
 
+      /*
+       * Registra automáticamente el client_id
+       * de este navegador en customers.
+       *
+       * No solicita nombre, email ni teléfono.
+       */
+
+      async function identifyCustomer() {
+
+        try {
+
+          const clientId =
+            getClientId();
+
+
+          await fetch(
+            "/api/customer/identify",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+                  client_id:
+                    clientId
+                }),
+
+              keepalive:
+                true
+            }
+          );
+
+        } catch (error) {
+
+          console.warn(
+            "OPEN 24HS: no se pudo registrar automáticamente el client_id.",
+            error
+          );
+
+        }
+
+      }
+
+
       function setButtonEnabledState() {
 
         button.style.display =
@@ -1272,9 +1321,6 @@
         setButtonEnabledState();
 
 
-        await syncPushStatus();
-
-
         console.log(
           "OPEN 24HS: notificaciones push activadas",
           subscription
@@ -1283,86 +1329,11 @@
       }
 
 
-      async function syncPushStatus() {
-
-        try {
-
-          if (
-            !("serviceWorker" in navigator) ||
-            !("Notification" in window)
-          ) {
-
-            return;
-
-          }
-
-
-          await navigator.serviceWorker.ready;
-
-
-          const registration =
-            await navigator.serviceWorker.ready;
-
-
-          const subscription =
-            await registration
-              .pushManager
-              .getSubscription();
-
-
-          const clientId =
-            getClientId();
-
-
-          await fetch(
-            "/api/push/status",
-            {
-
-              method:
-                "POST",
-
-              headers: {
-
-                "Content-Type":
-                  "application/json"
-
-              },
-
-              body:
-                JSON.stringify({
-
-                  client_id:
-                    clientId,
-
-                  push_active:
-                    Boolean(
-                      subscription &&
-                      Notification.permission ===
-                        "granted"
-                    )
-
-                })
-
-            }
-          );
-
-        }
-
-        catch (error) {
-
-          console.warn(
-            "OPEN 24HS: No se pudo sincronizar el estado Push.",
-            error
-          );
-
-        }
-
-      }
-
-
       async function initPushButton() {
 
         try {
+
+          await identifyCustomer();
 
           if (
             !("serviceWorker" in navigator) ||
@@ -1411,9 +1382,6 @@
             setButtonDisabledState();
 
           }
-
-
-          syncPushStatus();
 
         }
 
@@ -1485,6 +1453,8 @@
       );
 
 
+      identifyCustomer();
+
       initPushButton();
 
 
@@ -1496,8 +1466,8 @@
             document.visibilityState === "visible"
           ) {
 
+            identifyCustomer();
             initPushButton();
-            syncPushStatus();
 
           }
 
@@ -1509,8 +1479,8 @@
         "focus",
         () => {
 
+          identifyCustomer();
           initPushButton();
-          syncPushStatus();
 
         }
       );
