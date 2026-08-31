@@ -1,22 +1,17 @@
 import crypto from "crypto";
+import { isAdminAuthenticated } from "../_lib/admin-auth.js";
 
-
-const MAX_IMAGE_SIZE =
+const MAX_FILE_SIZE =
   2 * 1024 * 1024;
-
 
 const ALLOWED_TYPES =
   new Set([
-
     "image/jpeg",
     "image/png",
     "image/webp"
-
   ]);
 
-
 const EXTENSIONS = {
-
   "image/jpeg":
     "jpg",
 
@@ -25,9 +20,7 @@ const EXTENSIONS = {
 
   "image/webp":
     "webp"
-
 };
-
 
 function parseBody(req) {
 
@@ -37,9 +30,7 @@ function parseBody(req) {
   ) {
 
     return req.body;
-
   }
-
 
   if (
     typeof req.body === "string"
@@ -59,7 +50,6 @@ function parseBody(req) {
 
   }
 
-
   return {};
 
 }
@@ -75,7 +65,6 @@ async function ensureBucket(
     await fetch(
       `${supabaseUrl}/storage/v1/bucket/${bucket}`,
       {
-
         method:
           "GET",
 
@@ -93,7 +82,9 @@ async function ensureBucket(
     );
 
 
-  if (check.ok) {
+  if (
+    check.ok
+  ) {
 
     return;
 
@@ -147,6 +138,7 @@ async function ensureBucket(
     const text =
       await create.text();
 
+
     throw new Error(
       `No se pudo crear el bucket: ${text}`
     );
@@ -185,11 +177,11 @@ async function uploadObject({
 
   if (
     buffer.length >
-    MAX_IMAGE_SIZE
+    MAX_FILE_SIZE
   ) {
 
     throw new Error(
-      "La imagen supera el límite permitido."
+      "La imagen supera el límite de 2 MB."
     );
 
   }
@@ -197,7 +189,9 @@ async function uploadObject({
 
   const response =
     await fetch(
+
       `${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`,
+
       {
 
         method:
@@ -223,13 +217,17 @@ async function uploadObject({
           buffer
 
       }
+
     );
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     const text =
       await response.text();
+
 
     throw new Error(
       `Error Storage: ${text}`
@@ -252,7 +250,13 @@ export default async function handler(
 
   res.setHeader(
     "Access-Control-Allow-Origin",
-    "*"
+    "same-origin"
+  );
+
+
+  res.setHeader(
+    "Access-Control-Allow-Credentials",
+    "true"
   );
 
 
@@ -264,7 +268,7 @@ export default async function handler(
 
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, X-Push-Secret"
+    "Content-Type"
   );
 
 
@@ -285,7 +289,8 @@ export default async function handler(
 
     return res.status(405).json({
 
-      ok: false,
+      ok:
+        false,
 
       error:
         "Method not allowed"
@@ -295,31 +300,35 @@ export default async function handler(
   }
 
 
+  /*
+   * =====================================================
+   * AUTENTICACIÓN
+   * =====================================================
+   *
+   * El upload utiliza la sesión del administrador
+   * mediante la cookie HttpOnly.
+   *
+   * No se acepta PUSH_ADMIN_SECRET desde el navegador.
+   */
+
+  if (
+    !isAdminAuthenticated(req)
+  ) {
+
+    return res.status(401).json({
+
+      ok:
+        false,
+
+      error:
+        "Unauthorized"
+
+    });
+
+  }
+
+
   try {
-
-    const secret =
-      req.headers[
-        "x-push-secret"
-      ];
-
-
-    if (
-      !secret ||
-      secret !==
-        process.env.PUSH_ADMIN_SECRET
-    ) {
-
-      return res.status(401).json({
-
-        ok: false,
-
-        error:
-          "Unauthorized"
-
-      });
-
-    }
-
 
     const {
       filename,
@@ -329,13 +338,20 @@ export default async function handler(
     } = parseBody(req);
 
 
+    /*
+     * =====================================================
+     * VALIDACIONES
+     * =====================================================
+     */
+
     if (
       !data
     ) {
 
       return res.status(400).json({
 
-        ok: false,
+        ok:
+          false,
 
         error:
           "No se recibió ninguna imagen"
@@ -353,7 +369,8 @@ export default async function handler(
 
       return res.status(400).json({
 
-        ok: false,
+        ok:
+          false,
 
         error:
           "Formato no permitido. Usá JPG, PNG o WEBP."
@@ -378,7 +395,8 @@ export default async function handler(
 
       return res.status(500).json({
 
-        ok: false,
+        ok:
+          false,
 
         error:
           "Supabase no está configurado"
@@ -387,6 +405,12 @@ export default async function handler(
 
     }
 
+
+    /*
+     * =====================================================
+     * STORAGE
+     * =====================================================
+     */
 
     const bucket =
       "push-images";
@@ -405,12 +429,8 @@ export default async function handler(
       ];
 
 
-    const randomId =
-      crypto.randomUUID();
-
-
-    const originalPath =
-      `alerts/${Date.now()}-${randomId}.${extension}`;
+    const imagePath =
+      `alerts/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
 
     const imageUrl =
@@ -423,7 +443,7 @@ export default async function handler(
         bucket,
 
         objectPath:
-          originalPath,
+          imagePath,
 
         data,
 
@@ -432,14 +452,15 @@ export default async function handler(
       });
 
 
+    /*
+     * =====================================================
+     * ICONO
+     * =====================================================
+     */
+
     let iconUrl =
       imageUrl;
 
-
-    /*
-     * El icono generado en el navegador
-     * llega como PNG Base64.
-     */
 
     if (
       iconData
@@ -472,9 +493,16 @@ export default async function handler(
     }
 
 
+    /*
+     * =====================================================
+     * RESPUESTA
+     * =====================================================
+     */
+
     return res.status(200).json({
 
-      ok: true,
+      ok:
+        true,
 
       imageUrl,
 
@@ -497,7 +525,8 @@ export default async function handler(
 
     return res.status(500).json({
 
-      ok: false,
+      ok:
+        false,
 
       error:
         error.message ||
