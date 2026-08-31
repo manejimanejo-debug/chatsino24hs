@@ -1397,12 +1397,19 @@
       }
 
 
+      let pushCheckRunning = false;
+
       async function initPushButton() {
+
+        if (pushCheckRunning) {
+          return;
+        }
+
+        pushCheckRunning = true;
 
         try {
 
           await identifyCustomer();
-
 
           if (
             !("serviceWorker" in navigator) ||
@@ -1410,16 +1417,11 @@
             !("Notification" in window)
           ) {
 
-            await syncPushStatus(
-              false
-            );
-
+            await syncPushStatus(false);
             setButtonDisabledState();
-
             return;
 
           }
-
 
           const registration =
             await navigator
@@ -1431,24 +1433,19 @@
                 }
               );
 
-
           await navigator.serviceWorker.ready;
-
 
           const existingSubscription =
             await registration
               .pushManager
               .getSubscription();
 
-
           const permission =
             Notification.permission;
 
-
           /*
-           * ACTIVO:
-           * existe una suscripción y
-           * el permiso está concedido.
+           * ACTIVAS SOLAMENTE cuando existe una
+           * PushSubscription REAL y el permiso es granted.
            */
 
           if (
@@ -1456,30 +1453,20 @@
             permission === "granted"
           ) {
 
-            await syncPushStatus(
-              true
-            );
-
+            await syncPushStatus(true);
             setButtonEnabledState();
 
-          }
+          } else {
 
-          /*
-           * INACTIVO:
-           * no hay suscripción o
-           * el permiso no está concedido.
-           */
+            /*
+             * Permiso permitido + suscripción inexistente
+             * significa que hay que permitir una nueva activación.
+             */
 
-          else {
-
-            await syncPushStatus(
-              false
-            );
-
+            await syncPushStatus(false);
             setButtonDisabledState();
 
           }
-
 
         } catch (error) {
 
@@ -1488,18 +1475,56 @@
             error
           );
 
-
-          await syncPushStatus(
-            false
-          );
-
-
+          await syncPushStatus(false);
           setButtonDisabledState();
+
+        } finally {
+
+          pushCheckRunning = false;
 
         }
 
       }
 
+      /*
+       * =====================================================
+       * COMPROBACIÓN AUTOMÁTICA
+       * =====================================================
+       *
+       * Comprueba cada 10 segundos si la PushSubscription
+       * desapareció mientras la página sigue abierta.
+       */
+
+      const PUSH_CHECK_INTERVAL = 10000;
+
+      setInterval(
+        () => {
+
+          if (
+            document.visibilityState ===
+              "visible"
+          ) {
+
+            initPushButton();
+
+          }
+
+        },
+        PUSH_CHECK_INTERVAL
+      );
+
+      /*
+       * Cuando la página vuelve desde bfcache/historial.
+       */
+
+      window.addEventListener(
+        "pageshow",
+        () => {
+
+          initPushButton();
+
+        }
+      );
 
       button.addEventListener(
 
