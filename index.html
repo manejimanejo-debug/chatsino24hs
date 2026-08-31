@@ -1272,10 +1272,90 @@
         setButtonEnabledState();
 
 
+        await syncPushStatus();
+
+
         console.log(
           "OPEN 24HS: notificaciones push activadas",
           subscription
         );
+
+      }
+
+
+      async function syncPushStatus() {
+
+        try {
+
+          if (
+            !("serviceWorker" in navigator) ||
+            !("Notification" in window)
+          ) {
+
+            return;
+
+          }
+
+
+          await navigator.serviceWorker.ready;
+
+
+          const registration =
+            await navigator.serviceWorker.ready;
+
+
+          const subscription =
+            await registration
+              .pushManager
+              .getSubscription();
+
+
+          const clientId =
+            getClientId();
+
+
+          await fetch(
+            "/api/push/status",
+            {
+
+              method:
+                "POST",
+
+              headers: {
+
+                "Content-Type":
+                  "application/json"
+
+              },
+
+              body:
+                JSON.stringify({
+
+                  client_id:
+                    clientId,
+
+                  push_active:
+                    Boolean(
+                      subscription &&
+                      Notification.permission ===
+                        "granted"
+                    )
+
+                })
+
+            }
+          );
+
+        }
+
+        catch (error) {
+
+          console.warn(
+            "OPEN 24HS: No se pudo sincronizar el estado Push.",
+            error
+          );
+
+        }
 
       }
 
@@ -1331,6 +1411,9 @@
             setButtonDisabledState();
 
           }
+
+
+          syncPushStatus();
 
         }
 
@@ -1414,6 +1497,7 @@
           ) {
 
             initPushButton();
+            syncPushStatus();
 
           }
 
@@ -1426,6 +1510,7 @@
         () => {
 
           initPushButton();
+          syncPushStatus();
 
         }
       );
