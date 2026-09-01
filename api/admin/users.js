@@ -8,8 +8,18 @@ export default async function handler(
   res
 ) {
 
+  /*
+   * =====================================================
+   * MÉTODOS PERMITIDOS
+   * =====================================================
+   *
+   * GET   → cargar usuarios
+   * PATCH → editar nombre de usuario
+   */
+
   if (
-    req.method !== "GET"
+    req.method !== "GET" &&
+    req.method !== "PATCH"
   ) {
 
     return res.status(405).json({
@@ -24,6 +34,12 @@ export default async function handler(
 
   }
 
+
+  /*
+   * =====================================================
+   * AUTENTICACIÓN
+   * =====================================================
+   */
 
   if (
     !isAdminAuthenticated(req)
@@ -78,6 +94,9 @@ export default async function handler(
       Authorization:
         `Bearer ${serviceKey}`,
 
+      "Content-Type":
+        "application/json",
+
       Accept:
         "application/json"
 
@@ -86,14 +105,324 @@ export default async function handler(
 
     /*
      * =====================================================
-     * CLIENTES
+     * PATCH
+     * EDITAR USERNAME
+     * =====================================================
+     */
+
+    if (
+      req.method === "PATCH"
+    ) {
+
+      const clientId =
+        String(
+          req.body?.client_id || ""
+        ).trim();
+
+
+      const username =
+        String(
+          req.body?.username || ""
+        ).trim();
+
+
+      if (
+        !clientId
+      ) {
+
+        return res.status(400).json({
+
+          ok:
+            false,
+
+          error:
+            "client_id es obligatorio"
+
+        });
+
+      }
+
+
+      if (
+        !username
+      ) {
+
+        return res.status(400).json({
+
+          ok:
+            false,
+
+          error:
+            "El nombre de usuario es obligatorio"
+
+        });
+
+      }
+
+
+      /*
+       * Limpiamos espacios.
+       */
+
+      const cleanUsername =
+        username
+          .replace(
+            /\s+/g,
+            ""
+          )
+          .trim();
+
+
+      /*
+       * Longitud permitida.
+       */
+
+      if (
+        cleanUsername.length < 2 ||
+        cleanUsername.length > 50
+      ) {
+
+        return res.status(400).json({
+
+          ok:
+            false,
+
+          error:
+            "El nombre de usuario debe tener entre 2 y 50 caracteres."
+
+        });
+
+      }
+
+
+      /*
+       * Caracteres permitidos:
+       *
+       * letras
+       * números
+       * punto
+       * guión
+       * guión bajo
+       */
+
+      if (
+        !/^[a-zA-Z0-9._-]+$/.test(
+          cleanUsername
+        )
+      ) {
+
+        return res.status(400).json({
+
+          ok:
+            false,
+
+          error:
+            "El nombre de usuario solo puede contener letras, números, punto, guión y guión bajo."
+
+        });
+
+      }
+
+
+      /*
+       * ===================================================
+       * VERIFICAR QUE EL CLIENTE EXISTA
+       * ===================================================
+       */
+
+      const customerSearchResponse =
+        await fetch(
+
+          `${supabaseUrl}/rest/v1/customers?select=id,client_id,username&client_id=eq.${encodeURIComponent(clientId)}&limit=1`,
+
+          {
+
+            method:
+              "GET",
+
+            headers
+
+          }
+
+        );
+
+
+      const customerSearchText =
+        await customerSearchResponse.text();
+
+
+      if (
+        !customerSearchResponse.ok
+      ) {
+
+        console.error(
+
+          "Username customer SELECT:",
+
+          customerSearchText
+
+        );
+
+
+        return res.status(500).json({
+
+          ok:
+            false,
+
+          error:
+            "No se pudo consultar el cliente."
+
+        });
+
+      }
+
+
+      const customers =
+        customerSearchText
+          ? JSON.parse(
+              customerSearchText
+            )
+          : [];
+
+
+      if (
+        !Array.isArray(customers) ||
+        customers.length === 0
+      ) {
+
+        return res.status(404).json({
+
+          ok:
+            false,
+
+          error:
+            "El cliente no existe."
+
+        });
+
+      }
+
+
+      /*
+       * ===================================================
+       * ACTUALIZAR USERNAME
+       * ===================================================
+       */
+
+      const updateResponse =
+        await fetch(
+
+          `${supabaseUrl}/rest/v1/customers?client_id=eq.${encodeURIComponent(clientId)}`,
+
+          {
+
+            method:
+              "PATCH",
+
+            headers: {
+
+              ...headers,
+
+              Prefer:
+                "return=representation"
+
+            },
+
+            body:
+              JSON.stringify({
+
+                username:
+                  cleanUsername,
+
+                updated_at:
+                  new Date().toISOString()
+
+              })
+
+          }
+
+        );
+
+
+      const updateText =
+        await updateResponse.text();
+
+
+      if (
+        !updateResponse.ok
+      ) {
+
+        console.error(
+
+          "Username UPDATE:",
+
+          updateText
+
+        );
+
+
+        /*
+         * Username duplicado por el índice UNIQUE.
+         */
+
+        if (
+          updateResponse.status ===
+          409
+        ) {
+
+          return res.status(409).json({
+
+            ok:
+              false,
+
+            error:
+              "Ese nombre de usuario ya está registrado por otro cliente."
+
+          });
+
+        }
+
+
+        return res.status(500).json({
+
+          ok:
+            false,
+
+          error:
+            "No se pudo actualizar el nombre de usuario."
+
+        });
+
+      }
+
+
+      return res.status(200).json({
+
+        ok:
+          true,
+
+        client_id:
+          clientId,
+
+        username:
+          cleanUsername
+
+      });
+
+    }
+
+
+    /*
+     * =====================================================
+     * GET
+     * CARGAR USUARIOS
      * =====================================================
      */
 
     const customersResponse =
       await fetch(
 
-        `${supabaseUrl}/rest/v1/customers?select=id,phone,client_id,created_at,updated_at,push_active&order=created_at.desc&limit=5000`,
+        `${supabaseUrl}/rest/v1/customers?select=id,phone,username,client_id,created_at,updated_at,push_active&order=created_at.desc&limit=5000`,
 
         {
 
@@ -200,15 +529,11 @@ export default async function handler(
 
     /*
      * =====================================================
-     * ESTADO REAL
+     * ESTADO REAL DE PUSH
      * =====================================================
      *
-     * La existencia de una suscripción es la fuente
-     * de verdad para saber si Push está activo.
-     *
-     * Ya NO usamos push_active=true como respaldo,
-     * porque podía dejar clientes activos después
-     * de que la suscripción hubiera desaparecido.
+     * La existencia de una suscripción real es la
+     * fuente de verdad para determinar si Push está activo.
      */
 
     const activeClientIds =
@@ -229,7 +554,7 @@ export default async function handler(
 
     /*
      * =====================================================
-     * USUARIOS
+     * ARMAR USUARIOS
      * =====================================================
      */
 
@@ -252,7 +577,28 @@ export default async function handler(
 
           return {
 
-            ...customer,
+            id:
+              customer.id,
+
+            phone:
+              customer.phone ||
+              null,
+
+            username:
+              customer.username ||
+              null,
+
+            client_id:
+              customer.client_id ||
+              null,
+
+            created_at:
+              customer.created_at ||
+              null,
+
+            updated_at:
+              customer.updated_at ||
+              null,
 
             push_active:
               pushActive,
@@ -269,12 +615,15 @@ export default async function handler(
       );
 
 
+    /*
+     * =====================================================
+     * CONTADORES
+     * ===================================================== */
+
     const active =
       users.filter(
-
         user =>
           user.push_active === true
-
       ).length;
 
 
@@ -286,8 +635,7 @@ export default async function handler(
     /*
      * =====================================================
      * RESPUESTA
-     * =====================================================
-     */
+     * ===================================================== */
 
     return res.status(200).json({
 
@@ -323,6 +671,7 @@ export default async function handler(
         false,
 
       error:
+        error.message ||
         "Internal server error"
 
     });
