@@ -25,6 +25,10 @@ self.addEventListener(
 );
 
 
+/* =====================================================
+   RECIBIR NOTIFICACIONES PUSH
+===================================================== */
+
 self.addEventListener(
   "push",
   (event) => {
@@ -140,6 +144,10 @@ self.addEventListener(
 );
 
 
+/* =====================================================
+   CLICK EN LA NOTIFICACIÓN
+===================================================== */
+
 self.addEventListener(
   "notificationclick",
   (event) => {
@@ -219,6 +227,213 @@ self.addEventListener(
           }
 
         )
+
+    );
+
+  }
+);
+
+
+/* =====================================================
+   DETECTAR CAMBIOS EN LA SUSCRIPCIÓN PUSH
+===================================================== */
+
+/*
+ * Cuando el navegador cambie o pierda una suscripción Push,
+ * algunos navegadores pueden ejecutar este evento aunque
+ * la página web no esté abierta.
+ *
+ * Si existe una suscripción nueva, no hacemos una baja.
+ *
+ * Si la suscripción anterior desapareció y no existe una
+ * nueva, avisamos a nuestro backend usando /api/push/status.
+ *
+ * Esto reemplaza al endpoint separado /api/push/unsubscribe.
+ */
+
+self.addEventListener(
+  "pushsubscriptionchange",
+  (event) => {
+
+    event.waitUntil(
+
+      (async () => {
+
+        try {
+
+          const oldSubscription =
+            event.oldSubscription;
+
+
+          const newSubscription =
+            event.newSubscription;
+
+
+          console.log(
+            "OPEN 24HS: pushsubscriptionchange detectado."
+          );
+
+
+          /*
+           * Si el navegador creó una nueva suscripción,
+           * significa que la suscripción cambió/rotó.
+           *
+           * No la marcamos como inactiva porque sigue
+           * existiendo una suscripción.
+           */
+
+          if (
+            newSubscription
+          ) {
+
+            console.log(
+              "OPEN 24HS: se detectó una nueva suscripción Push."
+            );
+
+
+            /*
+             * Intentamos informar al servidor de la nueva
+             * suscripción si el evento nos la proporciona.
+             *
+             * Para obtener el client_id necesitamos que
+             * el cliente ya esté asociado en Supabase.
+             *
+             * En este caso mandamos solamente el endpoint
+             * anterior para que el backend pueda limpiar
+             * la suscripción vieja si todavía existe.
+             */
+
+            if (
+              oldSubscription &&
+              oldSubscription.endpoint
+            ) {
+
+              await fetch(
+                "/api/push/status",
+                {
+
+                  method:
+                    "POST",
+
+                  headers: {
+
+                    "Content-Type":
+                      "application/json"
+
+                  },
+
+                  body:
+                    JSON.stringify({
+
+                      endpoint:
+                        oldSubscription.endpoint
+
+                    })
+
+                }
+              );
+
+            }
+
+
+            return;
+
+          }
+
+
+          /*
+           * =================================================
+           * BAJA REAL
+           * =================================================
+           *
+           * No existe una nueva suscripción.
+           */
+
+          if (
+            !oldSubscription ||
+            !oldSubscription.endpoint
+          ) {
+
+            console.log(
+              "OPEN 24HS: no hay endpoint anterior para sincronizar."
+            );
+
+
+            return;
+
+          }
+
+
+          const endpoint =
+            oldSubscription.endpoint;
+
+
+          console.log(
+            "OPEN 24HS: notificando baja Push al servidor..."
+          );
+
+
+          const response =
+            await fetch(
+
+              "/api/push/status",
+
+              {
+
+                method:
+                  "POST",
+
+                headers: {
+
+                  "Content-Type":
+                    "application/json"
+
+                },
+
+                body:
+                  JSON.stringify({
+
+                    endpoint
+
+                  })
+
+              }
+
+            );
+
+
+          const result =
+            await response
+              .json()
+              .catch(
+                () => ({})
+              );
+
+
+          console.log(
+
+            "OPEN 24HS: respuesta de sincronización Push:",
+
+            response.status,
+
+            result
+
+          );
+
+
+        } catch (error) {
+
+          console.error(
+
+            "OPEN 24HS: error sincronizando cambio de suscripción:",
+
+            error
+
+          );
+
+        }
+
+      })()
 
     );
 
