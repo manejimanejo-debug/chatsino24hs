@@ -1602,6 +1602,41 @@
         }
 
 
+        /*
+         * Antes de guardar el usuario, pedimos una confirmación
+         * para evitar errores de escritura.
+         */
+
+        const confirmed =
+          window.confirm(
+            "⚠️ REVISÁ TU USUARIO\n\n" +
+            "Asegurate de que sea exactamente el usuario " +
+            "que te dieron para ingresar a la plataforma.\n\n" +
+            "Revisá bien letras y números antes de confirmar.\n\n" +
+            "Usuario: " +
+            username +
+            "\n\n" +
+            "¿Es correcto?"
+          );
+
+
+        if (
+          !confirmed
+        ) {
+
+          usernameInput.focus();
+
+          usernameStatus.style.color =
+            "#A8B0B8";
+
+          usernameStatus.textContent =
+            "Revisá el usuario y volvé a intentar.";
+
+          return;
+
+        }
+
+
         usernameSubmit.disabled =
           true;
 
