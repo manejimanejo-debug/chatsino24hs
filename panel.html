@@ -273,6 +273,54 @@
       font-weight: 800;
     }
 
+    .username-cell {
+      min-width: 170px;
+    }
+
+    .username-value {
+      display: inline-block;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .username-empty {
+      color: #8F98A1;
+    }
+
+    .edit-username-button {
+      margin-left: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .username-editor {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      min-width: 220px;
+    }
+
+    .username-editor input {
+      min-width: 0;
+      padding: 8px 9px;
+      font-size: 13px;
+    }
+
+    .username-editor button {
+      padding: 8px 10px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .username-message {
+      margin-top: 4px;
+      font-size: 12px;
+    }
+
     .empty {
       color: #8F98A1;
       padding: 20px 0;
@@ -546,7 +594,7 @@
           <input
             id="user-search"
             type="search"
-            placeholder="Buscar por teléfono o client ID..."
+            placeholder="Buscar por usuario, teléfono o client ID..."
           >
 
         </div>
@@ -559,6 +607,7 @@
             <thead>
 
               <tr>
+                <th>Usuario</th>
                 <th>Teléfono</th>
                 <th>Notificaciones</th>
                 <th>Client ID</th>
@@ -1559,6 +1608,175 @@
     }
 
 
+    async function updateUsername(
+      clientId,
+      username,
+      button,
+      input
+    ) {
+
+      const cleanUsername =
+        String(
+          username || ""
+        )
+          .replace(/\s+/g, "")
+          .trim();
+
+
+      if (
+        cleanUsername.length < 2 ||
+        cleanUsername.length > 50
+      ) {
+
+        alert(
+          "El nombre de usuario debe tener entre 2 y 50 caracteres."
+        );
+
+        return;
+
+      }
+
+
+      if (
+        !/^[a-zA-Z0-9._-]+$/.test(
+          cleanUsername
+        )
+      ) {
+
+        alert(
+          "El nombre de usuario solo puede contener letras, números, punto, guión y guión bajo."
+        );
+
+        return;
+
+      }
+
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        "⏳";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/admin/users",
+            {
+
+              method:
+                "PATCH",
+
+              credentials:
+                "include",
+
+              headers: {
+
+                "Content-Type":
+                  "application/json"
+
+              },
+
+              body:
+                JSON.stringify({
+
+                  client_id:
+                    clientId,
+
+                  username:
+                    cleanUsername
+
+                })
+
+            }
+          );
+
+
+        let result =
+          null;
+
+        try {
+
+          result =
+            await response.json();
+
+        } catch (_) {}
+
+
+        if (
+          !response.ok ||
+          !result ||
+          result.ok !== true
+        ) {
+
+          throw new Error(
+
+            (
+              result &&
+              result.error
+            )
+            ||
+            "No se pudo actualizar el usuario."
+
+          );
+
+        }
+
+
+        /*
+         * Actualizamos el registro local para que
+         * el cambio aparezca sin recargar la página.
+         */
+
+        const target =
+          allUsers.find(
+            user =>
+              String(
+                user.client_id || ""
+              ) ===
+              String(
+                clientId
+              )
+          );
+
+
+        if (
+          target
+        ) {
+
+          target.username =
+            result.username ||
+            cleanUsername;
+
+          target.updated_at =
+            new Date().toISOString();
+
+        }
+
+
+        renderUsers();
+
+
+      } catch (error) {
+
+        alert(
+          error.message
+        );
+
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Guardar";
+
+      }
+
+    }
+
+
     function renderUsers() {
 
       const query =
@@ -1589,31 +1807,41 @@
         allUsers.filter(
           (user) => {
 
+            const username =
+              String(
+                user.username || ""
+              )
+                .toLowerCase();
+
+
             const phone =
               String(
                 user.phone || ""
               )
-              .toLowerCase();
+                .toLowerCase();
 
 
             const clientId =
               String(
                 user.client_id || ""
               )
-              .toLowerCase();
+                .toLowerCase();
 
 
             const searchMatch =
+              username.includes(query) ||
               phone.includes(query) ||
               clientId.includes(query);
 
 
             const filterMatch =
               filter === "all" ||
+
               (
                 filter === "active" &&
                 user.push_active === true
               ) ||
+
               (
                 filter === "inactive" &&
                 user.push_active !== true
@@ -1634,7 +1862,7 @@
       ) {
 
         tbody.innerHTML =
-          `<tr><td colspan="5" class="empty">No hay usuarios que coincidan.</td></tr>`;
+          `<tr><td colspan="6" class="empty">No hay usuarios que coincidan.</td></tr>`;
 
         return;
 
@@ -1672,12 +1900,39 @@
                   : '<span class="push-inactive">🔴 Inactivo</span>';
 
 
+              const username =
+                String(
+                  user.username || ""
+                );
+
+
+              const usernameDisplay =
+                username
+                  ? `<span class="username-value">${escapeHtml(username)}</span>`
+                  : `<span class="username-value username-empty">Sin usuario</span>`;
+
+
               return `
                 <tr>
+                  <td class="username-cell">
+                    ${usernameDisplay}
+                    <button
+                      type="button"
+                      class="secondary edit-username-button"
+                      data-client-id="${escapeHtml(user.client_id || "")}"
+                    >
+                      ✏️ Editar
+                    </button>
+                  </td>
+
                   <td>${escapeHtml(user.phone || "-")}</td>
+
                   <td>${pushStatus}</td>
+
                   <td>${escapeHtml(user.client_id || "-")}</td>
+
                   <td>${escapeHtml(created)}</td>
+
                   <td>${escapeHtml(updated)}</td>
                 </tr>
               `;
@@ -1685,6 +1940,216 @@
             }
           )
           .join("");
+
+
+      /*
+       * Conectar botones de edición.
+       */
+
+      tbody
+        .querySelectorAll(
+          ".edit-username-button"
+        )
+        .forEach(
+          (editButton) => {
+
+            editButton.addEventListener(
+              "click",
+              () => {
+
+                const clientId =
+                  editButton.dataset.clientId;
+
+
+                const row =
+                  editButton.closest(
+                    "tr"
+                  );
+
+
+                if (
+                  !row
+                ) {
+
+                  return;
+
+                }
+
+
+                const usernameCell =
+                  row.querySelector(
+                    ".username-cell"
+                  );
+
+
+                const currentUser =
+                  allUsers.find(
+                    user =>
+                      String(
+                        user.client_id || ""
+                      ) ===
+                      String(
+                        clientId
+                      )
+                  );
+
+
+                const currentUsername =
+                  currentUser &&
+                  currentUser.username
+                    ? currentUser.username
+                    : "";
+
+
+                usernameCell.innerHTML =
+                  "";
+
+
+                const editor =
+                  document.createElement(
+                    "div"
+                  );
+
+
+                editor.className =
+                  "username-editor";
+
+
+                const input =
+                  document.createElement(
+                    "input"
+                  );
+
+
+                input.type =
+                  "text";
+
+                input.maxLength =
+                  50;
+
+                input.value =
+                  currentUsername;
+
+                input.placeholder =
+                  "Nombre de usuario";
+
+
+                const saveButton =
+                  document.createElement(
+                    "button"
+                  );
+
+
+                saveButton.type =
+                  "button";
+
+                saveButton.textContent =
+                  "Guardar";
+
+
+                const cancelButton =
+                  document.createElement(
+                    "button"
+                  );
+
+
+                cancelButton.type =
+                  "button";
+
+                cancelButton.className =
+                  "secondary";
+
+                cancelButton.textContent =
+                  "Cancelar";
+
+
+                editor.appendChild(
+                  input
+                );
+
+                editor.appendChild(
+                  saveButton
+                );
+
+                editor.appendChild(
+                  cancelButton
+                );
+
+
+                usernameCell.appendChild(
+                  editor
+                );
+
+
+                input.focus();
+
+
+                input.select();
+
+
+                saveButton.addEventListener(
+                  "click",
+                  async () => {
+
+                    await updateUsername(
+                      clientId,
+                      input.value,
+                      saveButton,
+                      input
+                    );
+
+                  }
+                );
+
+
+                input.addEventListener(
+                  "keydown",
+                  async (event) => {
+
+                    if (
+                      event.key ===
+                      "Enter"
+                    ) {
+
+                      event.preventDefault();
+
+                      await updateUsername(
+                        clientId,
+                        input.value,
+                        saveButton,
+                        input
+                      );
+
+                    }
+
+
+                    if (
+                      event.key ===
+                      "Escape"
+                    ) {
+
+                      renderUsers();
+
+                    }
+
+                  }
+                );
+
+
+                cancelButton.addEventListener(
+                  "click",
+                  () => {
+
+                    renderUsers();
+
+                  }
+                );
+
+              }
+            );
+
+          }
+        );
 
     }
 
