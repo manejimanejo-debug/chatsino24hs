@@ -474,6 +474,104 @@
 
 
     /* =====================================================
+       REGISTRO DE USUARIO
+    ===================================================== */
+
+    #username-registration-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(5,7,9,.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    #username-registration-overlay.hidden {
+      display: none !important;
+    }
+
+    .username-registration-card {
+      width: 100%;
+      max-width: 430px;
+      padding: 26px;
+      border-radius: 18px;
+      background: #11151A;
+      border: 1px solid rgba(212,175,55,.35);
+      box-shadow:
+        0 25px 80px rgba(0,0,0,.55),
+        0 0 35px rgba(212,175,55,.08);
+    }
+
+    .username-registration-card h2 {
+      margin: 0;
+      color: #D4AF37;
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .username-registration-card p {
+      margin: 10px 0 0;
+      color: #A8B0B8;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .username-registration-label {
+      display: block;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      color: #F5F5F5;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    #customer-username-input {
+      width: 100%;
+      border: 1px solid #303840;
+      border-radius: 10px;
+      padding: 13px;
+      background: #0B0D10;
+      color: #FFF;
+      font-size: 16px;
+      outline: none;
+    }
+
+    #customer-username-input:focus {
+      border-color: #D4AF37;
+    }
+
+    #customer-username-submit {
+      width: 100%;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 16px;
+      background: #D4AF37;
+      color: #111;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    #customer-username-submit:disabled {
+      opacity: .65;
+      cursor: default;
+    }
+
+    #customer-username-status {
+      min-height: 20px;
+      margin-top: 10px;
+      color: #FF7777;
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    /* =====================================================
        NOTIFICACIONES PUSH
     ===================================================== */
 
@@ -694,7 +792,66 @@
 </head>
 
 
+
 <body>
+
+  <!-- =====================================================
+       REGISTRO ÚNICO DEL USUARIO
+    ===================================================== -->
+
+  <div
+    id="username-registration-overlay"
+    class="hidden"
+    aria-hidden="true"
+  >
+    <div
+      class="username-registration-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="username-registration-title"
+    >
+
+      <h2 id="username-registration-title">
+        👤 Registrá tu usuario
+      </h2>
+
+      <p>
+        Ingresá el nombre de usuario que utilizás para acceder a la plataforma.
+        Lo usamos para identificar tu cuenta correctamente.
+      </p>
+
+      <label
+        class="username-registration-label"
+        for="customer-username-input"
+      >
+        Nombre de usuario
+      </label>
+
+      <input
+        id="customer-username-input"
+        type="text"
+        autocomplete="username"
+        autocapitalize="none"
+        spellcheck="false"
+        maxlength="50"
+        placeholder="Ej: jugador123"
+      >
+
+      <button
+        id="customer-username-submit"
+        type="button"
+      >
+        REGISTRAR USUARIO
+      </button>
+
+      <div
+        id="customer-username-status"
+        aria-live="polite"
+      ></div>
+
+    </div>
+  </div>
+
 
 
   <!-- =====================================================
@@ -1141,7 +1298,9 @@
        * No solicita nombre, email ni teléfono.
        */
 
-      async function identifyCustomer() {
+      async function identifyCustomer(
+        usernameValue = null
+      ) {
 
         try {
 
@@ -1149,38 +1308,384 @@
             getClientId();
 
 
-          await fetch(
-            "/api/customer/identify",
-            {
-              method:
-                "POST",
+          const payload = {
+            client_id:
+              clientId
+          };
 
-              headers: {
-                "Content-Type":
-                  "application/json"
-              },
 
-              body:
-                JSON.stringify({
-                  client_id:
-                    clientId
-                }),
+          /*
+           * Si recibimos un username desde el formulario,
+           * lo enviamos al mismo endpoint que ya registra
+           * el client_id.
+           */
 
-              keepalive:
-                true
-            }
-          );
+          if (
+            typeof usernameValue === "string"
+          ) {
+
+            payload.username =
+              usernameValue
+                .trim();
+
+          }
+
+
+          const response =
+            await fetch(
+              "/api/customer/identify",
+              {
+
+                method:
+                  "POST",
+
+                headers: {
+
+                  "Content-Type":
+                    "application/json"
+
+                },
+
+                body:
+                  JSON.stringify(
+                    payload
+                  ),
+
+                keepalive:
+                  true
+
+              }
+            );
+
+
+          let result =
+            null;
+
+
+          try {
+
+            result =
+              await response.json();
+
+          } catch (_) {}
+
+
+          if (
+            !response.ok ||
+            !result ||
+            result.ok !== true
+          ) {
+
+            throw new Error(
+
+              (
+                result &&
+                result.error
+              )
+              ||
+              "No se pudo registrar el usuario."
+
+            );
+
+          }
+
+
+          /*
+           * Guardamos el username localmente como referencia.
+           * La fuente de verdad sigue siendo Supabase.
+           */
+
+          if (
+            result.username
+          ) {
+
+            localStorage.setItem(
+              "open24hs_username",
+              String(
+                result.username
+              )
+            );
+
+          }
+
+
+          return result;
+
 
         } catch (error) {
 
           console.warn(
-            "OPEN 24HS: no se pudo registrar automáticamente el client_id.",
+
+            "OPEN 24HS: no se pudo registrar/sincronizar el cliente.",
+
             error
+
           );
+
+
+          throw error;
 
         }
 
       }
+
+
+      const usernameOverlay =
+        document.getElementById(
+          "username-registration-overlay"
+        );
+
+
+      const usernameInput =
+        document.getElementById(
+          "customer-username-input"
+        );
+
+
+      const usernameSubmit =
+        document.getElementById(
+          "customer-username-submit"
+        );
+
+
+      const usernameStatus =
+        document.getElementById(
+          "customer-username-status"
+        );
+
+
+      function showUsernameRegistration(
+        message = ""
+      ) {
+
+        usernameOverlay.classList.remove(
+          "hidden"
+        );
+
+        usernameOverlay.setAttribute(
+          "aria-hidden",
+          "false"
+        );
+
+
+        usernameStatus.style.color =
+          "#FF7777";
+
+        usernameStatus.textContent =
+          message;
+
+
+        setTimeout(
+          () => {
+
+            usernameInput.focus();
+
+          },
+          50
+        );
+
+      }
+
+
+      function hideUsernameRegistration() {
+
+        usernameOverlay.classList.add(
+          "hidden"
+        );
+
+        usernameOverlay.setAttribute(
+          "aria-hidden",
+          "true"
+        );
+
+        usernameStatus.textContent =
+          "";
+
+      }
+
+
+      async function ensureUsernameRegistered() {
+
+        try {
+
+          const result =
+            await identifyCustomer();
+
+
+          /*
+           * Si el backend devuelve username,
+           * este navegador ya está identificado.
+           */
+
+          if (
+            result &&
+            result.username
+          ) {
+
+            hideUsernameRegistration();
+
+            return true;
+
+          }
+
+
+          /*
+           * No tiene username todavía.
+           */
+
+          showUsernameRegistration();
+
+          return false;
+
+
+        } catch (error) {
+
+          showUsernameRegistration(
+            error.message ||
+            "No se pudo comprobar tu usuario."
+          );
+
+          return false;
+
+        }
+
+      }
+
+
+      async function registerUsernameFromForm() {
+
+        const username =
+          String(
+            usernameInput.value || ""
+          )
+            .replace(
+              /\s+/g,
+              ""
+            )
+            .trim();
+
+
+        if (
+          username.length < 2 ||
+          username.length > 50
+        ) {
+
+          usernameStatus.style.color =
+            "#FF7777";
+
+          usernameStatus.textContent =
+            "El usuario debe tener entre 2 y 50 caracteres.";
+
+          usernameInput.focus();
+
+          return;
+
+        }
+
+
+        if (
+          !/^[a-zA-Z0-9._-]+$/.test(
+            username
+          )
+        ) {
+
+          usernameStatus.style.color =
+            "#FF7777";
+
+          usernameStatus.textContent =
+            "El usuario solo puede contener letras, números, punto, guión y guión bajo.";
+
+          usernameInput.focus();
+
+          return;
+
+        }
+
+
+        usernameSubmit.disabled =
+          true;
+
+
+        usernameStatus.style.color =
+          "#A8B0B8";
+
+        usernameStatus.textContent =
+          "⏳ Registrando usuario...";
+
+
+        try {
+
+          const result =
+            await identifyCustomer(
+              username
+            );
+
+
+          if (
+            !result ||
+            result.ok !== true ||
+            !result.username
+          ) {
+
+            throw new Error(
+              "No se pudo registrar el usuario."
+            );
+
+          }
+
+
+          hideUsernameRegistration();
+
+
+          /*
+           * Una vez que el username quedó registrado,
+           * volvemos al flujo normal de Push.
+           */
+
+          await initPushButton();
+
+
+        } catch (error) {
+
+          usernameStatus.style.color =
+            "#FF7777";
+
+          usernameStatus.textContent =
+            error.message ||
+            "No se pudo registrar el usuario.";
+
+        } finally {
+
+          usernameSubmit.disabled =
+            false;
+
+        }
+
+      }
+
+
+      usernameSubmit.addEventListener(
+        "click",
+        registerUsernameFromForm
+      );
+
+
+      usernameInput.addEventListener(
+        "keydown",
+        (event) => {
+
+          if (
+            event.key === "Enter"
+          ) {
+
+            event.preventDefault();
+
+            registerUsernameFromForm();
+
+          }
+
+        }
+      );
 
 
       function setButtonEnabledState() {
@@ -1409,9 +1914,19 @@
 
         try {
 
-          await identifyCustomer();
+          
+          const usernameReady =
+            await ensureUsernameRegistered();
 
-          if (
+
+          if (!usernameReady) {
+
+            return;
+
+          }
+
+
+if (
             !("serviceWorker" in navigator) ||
             !("PushManager" in window) ||
             !("Notification" in window)
@@ -1579,8 +2094,6 @@
 
       );
 
-
-      identifyCustomer();
 
       initPushButton();
 
