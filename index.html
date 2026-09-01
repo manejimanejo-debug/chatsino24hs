@@ -572,6 +572,119 @@
     }
 
     /* =====================================================
+       CONFIRMACIÓN DE USUARIO
+    ===================================================== */
+
+    #username-confirmation-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 210000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(5, 7, 9, .86);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    #username-confirmation-overlay.hidden {
+      display: none !important;
+    }
+
+    .username-confirmation-card {
+      width: 100%;
+      max-width: 430px;
+      padding: 26px;
+      border-radius: 18px;
+      background: #11151A;
+      border: 1px solid rgba(212,175,55,.45);
+      box-shadow:
+        0 25px 80px rgba(0,0,0,.55),
+        0 0 35px rgba(212,175,55,.10);
+      text-align: left;
+    }
+
+    .username-confirmation-card h3 {
+      margin: 0;
+      color: #D4AF37;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .username-confirmation-card p {
+      margin: 10px 0 0;
+      color: #A8B0B8;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .username-confirmation-value {
+      margin-top: 16px;
+      padding: 13px 14px;
+      border-radius: 10px;
+      border: 1px solid #303840;
+      background: #0B0D10;
+      color: #F5F5F5;
+      font-size: 17px;
+      font-weight: 900;
+      text-align: center;
+      word-break: break-word;
+    }
+
+    .username-confirmation-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .username-confirmation-buttons button {
+      flex: 1;
+      border-radius: 10px;
+      padding: 13px 12px;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    #username-confirmation-cancel {
+      border: 1px solid #303840;
+      background: #1C2229;
+      color: #F5F5F5;
+    }
+
+    #username-confirmation-accept {
+      border: 0;
+      background: #D4AF37;
+      color: #111;
+    }
+
+    #username-confirmation-cancel:disabled,
+    #username-confirmation-accept:disabled {
+      opacity: .65;
+      cursor: default;
+    }
+
+    #username-confirmation-status {
+      min-height: 18px;
+      margin-top: 10px;
+      color: #A8B0B8;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 480px) {
+      .username-confirmation-card {
+        padding: 22px;
+      }
+
+      .username-confirmation-buttons {
+        flex-direction: column;
+      }
+    }
+
+
+    /* =====================================================
        NOTIFICACIONES PUSH
     ===================================================== */
 
@@ -852,6 +965,66 @@
     </div>
   </div>
 
+
+
+  <!-- =====================================================
+       CONFIRMACIÓN DEL NOMBRE DE USUARIO
+    ===================================================== -->
+
+  <div
+    id="username-confirmation-overlay"
+    class="hidden"
+    aria-hidden="true"
+  >
+    <div
+      class="username-confirmation-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="username-confirmation-title"
+    >
+
+      <h3 id="username-confirmation-title">
+        ⚠️ Revisá tu usuario
+      </h3>
+
+      <p>
+        Verificá que sea exactamente el usuario que te dieron para ingresar a la plataforma.
+      </p>
+
+      <div
+        id="username-confirmation-value"
+        class="username-confirmation-value"
+      ></div>
+
+      <p>
+        Es importante escribirlo correctamente para identificar tu cuenta.
+      </p>
+
+      <div class="username-confirmation-buttons">
+
+        <button
+          id="username-confirmation-cancel"
+          type="button"
+        >
+          REVISAR
+        </button>
+
+        <button
+          id="username-confirmation-accept"
+          type="button"
+        >
+          CONFIRMAR
+        </button>
+
+      </div>
+
+      <div
+        id="username-confirmation-status"
+        aria-live="polite"
+      ></div>
+
+    </div>
+  </div>
 
 
   <!-- =====================================================
@@ -1454,6 +1627,36 @@
         );
 
 
+      const usernameConfirmationOverlay =
+        document.getElementById(
+          "username-confirmation-overlay"
+        );
+
+
+      const usernameConfirmationValue =
+        document.getElementById(
+          "username-confirmation-value"
+        );
+
+
+      const usernameConfirmationAccept =
+        document.getElementById(
+          "username-confirmation-accept"
+        );
+
+
+      const usernameConfirmationCancel =
+        document.getElementById(
+          "username-confirmation-cancel"
+        );
+
+
+      const usernameConfirmationStatus =
+        document.getElementById(
+          "username-confirmation-status"
+        );
+
+
       function showUsernameRegistration(
         message = ""
       ) {
@@ -1570,9 +1773,6 @@
           username.length > 50
         ) {
 
-          usernameStatus.style.color =
-            "#FF7777";
-
           usernameStatus.textContent =
             "El usuario debe tener entre 2 y 50 caracteres.";
 
@@ -1589,9 +1789,6 @@
           )
         ) {
 
-          usernameStatus.style.color =
-            "#FF7777";
-
           usernameStatus.textContent =
             "El usuario solo puede contener letras, números, punto, guión y guión bajo.";
 
@@ -1602,50 +1799,85 @@
         }
 
 
-        /*
-         * Antes de guardar el usuario, pedimos una confirmación
-         * para evitar errores de escritura.
-         */
+        showUsernameConfirmation(
+          username
+        );
 
-        const confirmed =
-          window.confirm(
-            "⚠️ REVISÁ TU USUARIO\n\n" +
-            "Asegurate de que sea exactamente el usuario " +
-            "que te dieron para ingresar a la plataforma.\n\n" +
-            "Revisá bien letras y números antes de confirmar.\n\n" +
-            "Usuario: " +
-            username +
-            "\n\n" +
-            "¿Es correcto?"
-          );
+      }
 
 
-        if (
-          !confirmed
-        ) {
+      function showUsernameConfirmation(
+        username
+      ) {
 
-          usernameInput.focus();
+        usernameConfirmationValue.textContent =
+          username;
 
-          usernameStatus.style.color =
-            "#A8B0B8";
+        usernameConfirmationStatus.textContent =
+          "";
 
-          usernameStatus.textContent =
-            "Revisá el usuario y volvé a intentar.";
-
-          return;
-
-        }
-
-
-        usernameSubmit.disabled =
-          true;
-
-
-        usernameStatus.style.color =
+        usernameConfirmationStatus.style.color =
           "#A8B0B8";
 
-        usernameStatus.textContent =
-          "⏳ Registrando usuario...";
+        usernameConfirmationAccept.disabled =
+          false;
+
+        usernameConfirmationCancel.disabled =
+          false;
+
+        usernameConfirmationOverlay.classList.remove(
+          "hidden"
+        );
+
+        usernameConfirmationOverlay.setAttribute(
+          "aria-hidden",
+          "false"
+        );
+
+      }
+
+
+      function hideUsernameConfirmation() {
+
+        usernameConfirmationOverlay.classList.add(
+          "hidden"
+        );
+
+        usernameConfirmationOverlay.setAttribute(
+          "aria-hidden",
+          "true"
+        );
+
+        usernameConfirmationStatus.textContent =
+          "";
+
+      }
+
+
+      async function confirmUsernameRegistration() {
+
+        const username =
+          String(
+            usernameInput.value || ""
+          )
+            .replace(
+              /\s+/g,
+              ""
+            )
+            .trim();
+
+
+        usernameConfirmationAccept.disabled =
+          true;
+
+        usernameConfirmationCancel.disabled =
+          true;
+
+        usernameConfirmationStatus.style.color =
+          "#A8B0B8";
+
+        usernameConfirmationStatus.textContent =
+          "⏳ Guardando usuario...";
 
 
         try {
@@ -1669,29 +1901,27 @@
           }
 
 
+          hideUsernameConfirmation();
+
           hideUsernameRegistration();
 
-
-          /*
-           * Una vez que el username quedó registrado,
-           * volvemos al flujo normal de Push.
-           */
 
           await initPushButton();
 
 
         } catch (error) {
 
-          usernameStatus.style.color =
+          usernameConfirmationStatus.style.color =
             "#FF7777";
 
-          usernameStatus.textContent =
+          usernameConfirmationStatus.textContent =
             error.message ||
             "No se pudo registrar el usuario.";
 
-        } finally {
+          usernameConfirmationAccept.disabled =
+            false;
 
-          usernameSubmit.disabled =
+          usernameConfirmationCancel.disabled =
             false;
 
         }
@@ -1702,6 +1932,43 @@
       usernameSubmit.addEventListener(
         "click",
         registerUsernameFromForm
+      );
+
+
+      usernameConfirmationAccept.addEventListener(
+        "click",
+        confirmUsernameRegistration
+      );
+
+
+      usernameConfirmationCancel.addEventListener(
+        "click",
+        () => {
+
+          hideUsernameConfirmation();
+
+          usernameInput.focus();
+
+        }
+      );
+
+
+      usernameConfirmationOverlay.addEventListener(
+        "click",
+        (event) => {
+
+          if (
+            event.target ===
+            usernameConfirmationOverlay
+          ) {
+
+            hideUsernameConfirmation();
+
+            usernameInput.focus();
+
+          }
+
+        }
       );
 
 
