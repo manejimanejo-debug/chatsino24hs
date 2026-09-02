@@ -1,6 +1,6 @@
 import {
   isAdminAuthenticated
-} from "../../lib/admin-auth.js";
+} from "../_lib/admin-auth.js";
 
 
 export default async function handler(
