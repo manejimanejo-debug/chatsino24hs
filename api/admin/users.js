@@ -13,12 +13,8 @@ export default async function handler(
    * MÉTODOS PERMITIDOS
    * =====================================================
    *
-   * GET
-   *   → cargar usuarios
-   *
-   * PATCH
-   *   → editar username
-   *   → actualizar también el contacto en Kommo
+   * GET   → cargar usuarios
+   * PATCH → editar username + sincronizar Kommo
    */
 
   if (
@@ -36,7 +32,7 @@ export default async function handler(
 
   /*
    * =====================================================
-   * AUTENTICACIÓN ADMIN
+   * AUTENTICACIÓN
    * =====================================================
    */
 
@@ -164,6 +160,12 @@ export default async function handler(
           .trim();
 
 
+      /*
+       * ===================================================
+       * VALIDAR LONGITUD
+       * ===================================================
+       */
+
       if (
         cleanUsername.length < 2 ||
         cleanUsername.length > 50
@@ -177,6 +179,12 @@ export default async function handler(
 
       }
 
+
+      /*
+       * ===================================================
+       * VALIDAR CARACTERES
+       * ===================================================
+       */
 
       if (
         !/^[a-zA-Z0-9._-]+$/.test(
@@ -195,16 +203,12 @@ export default async function handler(
 
       /*
        * ===================================================
-       * BUSCAR CLIENTE ACTUAL EN SUPABASE
+       * BUSCAR CLIENTE EN SUPABASE
        * ===================================================
        *
-       * Importante:
-       *
-       * Primero obtenemos el username ANTERIOR.
-       *
-       * Ese username es el que utilizaremos
-       * para localizar el contacto correspondiente
-       * en Kommo.
+       * Guardamos el username anterior porque
+       * será el nombre que utilizaremos para encontrar
+       * el contacto correspondiente en Kommo.
        */
 
       const customerSearchResponse =
@@ -279,14 +283,14 @@ export default async function handler(
 
       /*
        * ===================================================
-       * COMPROBAR USERNAME DUPLICADO
+       * VERIFICAR USERNAME DUPLICADO
        * ===================================================
        */
 
       const duplicateResponse =
         await fetch(
 
-          `${supabaseUrl}/rest/v1/customers?select=id,client_id&username=ilike.${encodeURIComponent(cleanUsername)}&limit=10`,
+          `${supabaseUrl}/rest/v1/customers?select=id,client_id,username&username=ilike.${encodeURIComponent(cleanUsername)}&limit=50`,
 
           {
             method:
@@ -306,30 +310,34 @@ export default async function handler(
           await duplicateResponse.json();
 
 
-        const anotherCustomer =
+        if (
           Array.isArray(
             duplicateCustomers
           )
-            ? duplicateCustomers.find(
-                row =>
-                  String(
-                    row.client_id ||
-                    ""
-                  ).trim() !==
-                  clientId
-              )
-            : null;
-
-
-        if (
-          anotherCustomer
         ) {
 
-          return res.status(409).json({
-            ok: false,
-            error:
-              "Ese nombre de usuario ya está registrado por otro cliente."
-          });
+          const anotherCustomer =
+            duplicateCustomers.find(
+              row =>
+                String(
+                  row.client_id ||
+                  ""
+                ).trim() !==
+                clientId
+            );
+
+
+          if (
+            anotherCustomer
+          ) {
+
+            return res.status(409).json({
+              ok: false,
+              error:
+                "Ese nombre de usuario ya está registrado por otro cliente."
+            });
+
+          }
 
         }
 
@@ -338,11 +346,12 @@ export default async function handler(
 
       /*
        * ===================================================
-       * KOMMO
+       * RESULTADO DE KOMMO
        * ===================================================
        */
 
       let kommoResult = {
+
         attempted:
           false,
 
@@ -357,8 +366,15 @@ export default async function handler(
 
         error:
           null
+
       };
 
+
+      /*
+       * ===================================================
+       * CONFIGURACIÓN KOMMO
+       * ===================================================
+       */
 
       const kommoSubdomain =
         String(
@@ -375,9 +391,12 @@ export default async function handler(
 
 
       /*
-       * Solo intentamos sincronizar con Kommo
-       * cuando tenemos configuración y un username
-       * anterior.
+       * ===================================================
+       * SINCRONIZAR KOMMO
+       * ===================================================
+       *
+       * Para encontrar el contacto usamos el nombre
+       * anterior del usuario.
        */
 
       if (
@@ -393,26 +412,18 @@ export default async function handler(
         try {
 
           /*
-           * =================================================
-           * BUSCAR CONTACTO EN KOMMO POR NOMBRE
-           * =================================================
-           *
-           * Buscamos el nombre anterior EXACTO.
+           * -------------------------------------------------
+           * BUSCAR CONTACTO
+           * -------------------------------------------------
            */
 
-          const encodedOldName =
-            encodeURIComponent(
-              oldUsername
-            );
+          const searchUrl =
+            `https://${kommoSubdomain}.kommo.com/api/v4/contacts?query=${encodeURIComponent(oldUsername)}&limit=250`;
 
 
-          const kommoSearchUrl =
-            `https://${kommoSubdomain}.kommo.com/api/v4/contacts?filter%5Bname%5D%5B%5D=${encodedOldName}&limit=250`;
-
-
-          const kommoSearchResponse =
+          const searchResponse =
             await fetch(
-              kommoSearchUrl,
+              searchUrl,
               {
 
                 method:
@@ -432,69 +443,90 @@ export default async function handler(
             );
 
 
-          const kommoSearchText =
-            await kommoSearchResponse.text();
+          const searchText =
+            await searchResponse.text();
 
 
           if (
-            !kommoSearchResponse.ok
+            !searchResponse.ok
           ) {
 
             console.error(
               "Kommo SEARCH:",
-              kommoSearchResponse.status,
-              kommoSearchText
+              searchResponse.status,
+              searchText
             );
 
             kommoResult.error =
-              `Kommo devolvió ${kommoSearchResponse.status} al buscar el contacto.`;
+              `Kommo devolvió ${searchResponse.status} al buscar el contacto.`;
 
           } else {
 
-            let kommoSearchData =
+            let searchData =
               null;
 
 
             try {
 
-              kommoSearchData =
-                kommoSearchText
+              searchData =
+                searchText
                   ? JSON.parse(
-                      kommoSearchText
+                      searchText
                     )
                   : null;
 
             } catch (_) {
 
-              kommoSearchData =
+              searchData =
                 null;
 
             }
 
 
             const contacts =
-              kommoSearchData &&
-              kommoSearchData._embedded &&
+              searchData &&
+              searchData._embedded &&
               Array.isArray(
-                kommoSearchData
+                searchData
                   ._embedded
                   .contacts
               )
-                ? kommoSearchData
+                ? searchData
                     ._embedded
                     .contacts
                 : [];
 
 
             /*
-             * =================================================
-             * ACTUALIZAR CONTACTO(S)
-             * =================================================
+             * -------------------------------------------------
+             * BUSCAR COINCIDENCIA EXACTA
+             * -------------------------------------------------
              */
 
+            const exactContact =
+              contacts.find(
+                contact =>
+                  String(
+                    contact.name ||
+                    ""
+                  ).trim().toLowerCase() ===
+                  oldUsername.toLowerCase()
+              );
+
+
+            /*
+             * Si existe coincidencia exacta usamos esa.
+             * Como respaldo, usamos el primer resultado.
+             */
+
+            const contact =
+              exactContact ||
+              contacts[0] ||
+              null;
+
+
             if (
-              contacts.length ===
-              0
+              !contact
             ) {
 
               kommoResult.skipped =
@@ -510,92 +542,101 @@ export default async function handler(
 
             } else {
 
-              /*
-               * Usamos el primer contacto exacto.
-               *
-               * En condiciones normales debería ser
-               * uno solo porque los usernames son únicos.
-               */
-
-              const contact =
-                contacts[0];
-
-
               const contactId =
                 Number(
                   contact.id
                 );
 
 
-              const kommoUpdateUrl =
-                `https://${kommoSubdomain}.kommo.com/api/v4/contacts/${contactId}`;
-
-
-              const kommoUpdateResponse =
-                await fetch(
-                  kommoUpdateUrl,
-                  {
-
-                    method:
-                      "PATCH",
-
-                    headers: {
-
-                      Authorization:
-                        `Bearer ${kommoAccessToken}`,
-
-                      Accept:
-                        "application/json",
-
-                      "Content-Type":
-                        "application/json"
-
-                    },
-
-                    body:
-                      JSON.stringify({
-
-                        name:
-                          cleanUsername
-
-                      })
-
-                  }
-                );
-
-
-              const kommoUpdateText =
-                await kommoUpdateResponse.text();
-
-
               if (
-                !kommoUpdateResponse.ok
+                !Number.isFinite(
+                  contactId
+                )
               ) {
 
-                console.error(
-                  "Kommo UPDATE:",
-                  kommoUpdateResponse.status,
-                  kommoUpdateText
-                );
-
                 kommoResult.error =
-                  `Kommo devolvió ${kommoUpdateResponse.status} al actualizar el contacto.`;
+                  "El contacto encontrado en Kommo no tiene un ID válido.";
 
               } else {
 
-                kommoResult.updated =
-                  true;
+                /*
+                 * -------------------------------------------------
+                 * ACTUALIZAR NOMBRE EN KOMMO
+                 * -------------------------------------------------
+                 */
 
-                kommoResult.contact_id =
-                  contactId;
+                const updateUrl =
+                  `https://${kommoSubdomain}.kommo.com/api/v4/contacts/${contactId}`;
 
-                console.log(
-                  "✅ Kommo actualizado:",
-                  contactId,
-                  oldUsername,
-                  "→",
-                  cleanUsername
-                );
+
+                const updateResponse =
+                  await fetch(
+                    updateUrl,
+                    {
+
+                      method:
+                        "PATCH",
+
+                      headers: {
+
+                        Authorization:
+                          `Bearer ${kommoAccessToken}`,
+
+                        Accept:
+                          "application/json",
+
+                        "Content-Type":
+                          "application/json"
+
+                      },
+
+                      body:
+                        JSON.stringify({
+
+                          name:
+                            cleanUsername
+
+                        })
+
+                    }
+                  );
+
+
+                const updateText =
+                  await updateResponse.text();
+
+
+                if (
+                  !updateResponse.ok
+                ) {
+
+                  console.error(
+                    "Kommo UPDATE:",
+                    updateResponse.status,
+                    updateText
+                  );
+
+                  kommoResult.error =
+                    `Kommo devolvió ${updateResponse.status} al actualizar el contacto.`;
+
+                } else {
+
+                  kommoResult.updated =
+                    true;
+
+                  kommoResult.contact_id =
+                    contactId;
+
+
+                  console.log(
+                    "✅ Kommo actualizado:",
+                    contactId,
+                    oldUsername,
+                    "→",
+                    cleanUsername
+                  );
+
+                }
 
               }
 
@@ -608,7 +649,7 @@ export default async function handler(
         ) {
 
           console.error(
-            "Kommo error:",
+            "Kommo ERROR:",
             kommoError
           );
 
@@ -620,23 +661,21 @@ export default async function handler(
 
       } else {
 
+        kommoResult.skipped =
+          true;
+
+
         if (
           !oldUsername
         ) {
-
-          kommoResult.skipped =
-            true;
 
           kommoResult.error =
             "El cliente no tenía username anterior.";
 
         } else {
 
-          kommoResult.skipped =
-            true;
-
           kommoResult.error =
-            "KOMMO_SUBDOMAIN o KOMMO_ACCESS_TOKEN no están configurados.";
+            "Falta configurar KOMMO_SUBDOMAIN o KOMMO_ACCESS_TOKEN.";
 
         }
 
@@ -698,10 +737,6 @@ export default async function handler(
         );
 
 
-        /*
-         * Username duplicado por índice UNIQUE.
-         */
-
         if (
           updateResponse.status ===
           409
@@ -710,7 +745,9 @@ export default async function handler(
           return res.status(409).json({
             ok: false,
             error:
-              "Ese nombre de usuario ya está registrado por otro cliente."
+              "Ese nombre de usuario ya está registrado por otro cliente.",
+            kommo:
+              kommoResult
           });
 
         }
@@ -729,7 +766,7 @@ export default async function handler(
 
       /*
        * ===================================================
-       * RESPUESTA
+       * RESPUESTA PATCH
        * ===================================================
        */
 
@@ -861,6 +898,9 @@ export default async function handler(
      * =====================================================
      * ESTADO REAL DE PUSH
      * =====================================================
+     *
+     * La existencia de una suscripción real determina
+     * si el cliente tiene Push activa.
      */
 
     const activeClientIds =
