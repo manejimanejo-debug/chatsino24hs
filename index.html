@@ -1506,6 +1506,139 @@
 
 
       /*
+       * =====================================================
+       * IDENTIDAD DEL CLIENTE EN KOMMO
+       * =====================================================
+       *
+       * Mantiene el contacto de Kommo con el mismo username
+       * que el cliente registró en la plataforma.
+       *
+       * También enviamos el client_id y username como
+       * bot_params para que Kommo pueda usarlos en
+       * automatizaciones/Salesbot.
+       */
+      async function syncKommoIdentity(
+        username,
+        clientId = null
+      ) {
+
+        const cleanUsername =
+          String(
+            username || ""
+          )
+            .trim();
+
+        if (
+          !cleanUsername
+        ) {
+          return false;
+        }
+
+        const cleanClientId =
+          String(
+            clientId ||
+            getClientId() ||
+            ""
+          )
+            .trim();
+
+        const applyMeta =
+          () => {
+
+            try {
+
+              if (
+                typeof window.crm_plugin !==
+                "object" &&
+                typeof window.crm_plugin !==
+                "function"
+              ) {
+                return false;
+              }
+
+              if (
+                typeof window.crm_plugin.setMeta !==
+                "function"
+              ) {
+                return false;
+              }
+
+              window.crm_plugin.setMeta({
+                contact: {
+                  name:
+                    cleanUsername
+                },
+
+                bot_params: {
+                  username:
+                    cleanUsername,
+
+                  client_id:
+                    cleanClientId
+                }
+              });
+
+              console.log(
+                "OPEN 24HS: identidad sincronizada con Kommo:",
+                cleanUsername,
+                cleanClientId
+              );
+
+              return true;
+
+            } catch (error) {
+
+              console.warn(
+                "OPEN 24HS: no se pudo sincronizar la identidad con Kommo.",
+                error
+              );
+
+              return false;
+            }
+          };
+
+        /*
+         * El script de Kommo carga de forma asíncrona.
+         * Reintentamos durante unos segundos para asegurarnos
+         * de que crm_plugin ya exista.
+         */
+
+        if (
+          applyMeta()
+        ) {
+          return true;
+        }
+
+        for (
+          let attempt = 0;
+          attempt < 20;
+          attempt++
+        ) {
+
+          await new Promise(
+            (resolve) =>
+              setTimeout(
+                resolve,
+                500
+              )
+          );
+
+          if (
+            applyMeta()
+          ) {
+            return true;
+          }
+        }
+
+        console.warn(
+          "OPEN 24HS: Kommo no estuvo disponible para sincronizar la identidad."
+        );
+
+        return false;
+      }
+
+
+      /*
        * Registra automáticamente el client_id
        * de este navegador en customers.
        *
@@ -1618,6 +1751,17 @@
               String(
                 result.username
               )
+            );
+
+            /*
+             * Sincronizamos inmediatamente el username
+             * con el contacto de Kommo.
+             */
+            await syncKommoIdentity(
+              String(
+                result.username
+              ),
+              clientId
             );
 
           }
