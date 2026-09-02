@@ -842,6 +842,46 @@
 
 
   <!-- =====================================================
+       IDENTIFICADOR ESTABLE PARA KOMMO
+       Debe existir ANTES de cargar el botón de Kommo.
+    ===================================================== -->
+
+  <script>
+    (function () {
+      try {
+        let clientId =
+          localStorage.getItem("open24hs_client_id");
+
+        if (!clientId) {
+          clientId =
+            (crypto.randomUUID
+              ? crypto.randomUUID()
+              : "client_" +
+                Date.now() +
+                "_" +
+                Math.random()
+                  .toString(36)
+                  .slice(2));
+
+          localStorage.setItem(
+            "open24hs_client_id",
+            clientId
+          );
+        }
+
+        window.__OPEN24HS_CLIENT_ID =
+          String(clientId).trim();
+      } catch (error) {
+        console.warn(
+          "OPEN 24HS: no se pudo preparar el client_id para Kommo.",
+          error
+        );
+      }
+    })();
+  </script>
+
+
+  <!-- =====================================================
        CONFIGURACIÓN DE KOMMO
     ===================================================== -->
 
@@ -857,6 +897,9 @@
 
         container:
           '#custom_chat_holder',
+
+        user_id:
+          window.__OPEN24HS_CLIENT_ID || '',
 
         locale: {
 
@@ -1404,6 +1447,7 @@
       function getClientId() {
 
         let clientId =
+          window.__OPEN24HS_CLIENT_ID ||
           localStorage.getItem(
             "open24hs_client_id"
           );
