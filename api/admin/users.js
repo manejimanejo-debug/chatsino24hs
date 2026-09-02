@@ -345,25 +345,36 @@ export default async function handler(
 
 
       /*
-       * =====================================================
-       * SINCRONIZAR NOMBRE EN KOMMO
-       * =====================================================
-       *
-       * El cambio debe quedar confirmado en Kommo antes de
-       * actualizar Supabase. Así evitamos que ambos sistemas
-       * queden con nombres diferentes si Kommo rechaza el cambio.
+       * ===================================================
+       * RESULTADO DE KOMMO
+       * ===================================================
        */
 
       let kommoResult = {
-        attempted: false,
-        updated: false,
-        contact_id: null,
-        old_username: oldUsername || null,
-        new_username: cleanUsername,
-        skipped: false,
-        error: null
+
+        attempted:
+          false,
+
+        updated:
+          false,
+
+        contact_id:
+          null,
+
+        skipped:
+          false,
+
+        error:
+          null
+
       };
 
+
+      /*
+       * ===================================================
+       * CONFIGURACIÓN KOMMO
+       * ===================================================
+       */
 
       const kommoSubdomain =
         String(
@@ -379,37 +390,20 @@ export default async function handler(
         ).trim();
 
 
-      if (
-        !kommoSubdomain ||
-        !kommoAccessToken
-      ) {
-
-        return res.status(500).json({
-          ok: false,
-          error:
-            "Kommo no está configurado en Vercel. Verificá KOMMO_SUBDOMAIN y KOMMO_ACCESS_TOKEN y hacé un nuevo Deploy.",
-          kommo: {
-            attempted: false,
-            updated: false,
-            error:
-              "Faltan variables de entorno de Kommo."
-          }
-        });
-
-      }
-
+      /*
+       * ===================================================
+       * SINCRONIZAR KOMMO
+       * ===================================================
+       *
+       * Para encontrar el contacto usamos el nombre
+       * anterior del usuario.
+       */
 
       if (
-        !oldUsername
+        kommoSubdomain &&
+        kommoAccessToken &&
+        oldUsername
       ) {
-
-        kommoResult.skipped =
-          true;
-
-        kommoResult.error =
-          "El cliente todavía no tenía username anterior.";
-
-      } else {
 
         kommoResult.attempted =
           true;
@@ -417,40 +411,35 @@ export default async function handler(
 
         try {
 
-          const kommoBaseUrl =
-            `https://${kommoSubdomain}.kommo.com/api/v4`;
-
-
-          const authHeaders = {
-
-            Authorization:
-              `Bearer ${kommoAccessToken}`,
-
-            Accept:
-              "application/json"
-
-          };
-
-
           /*
            * -------------------------------------------------
-           * BUSCAR CONTACTO EN KOMMO
+           * BUSCAR CONTACTO
            * -------------------------------------------------
            */
 
+          const searchUrl =
+            `https://${kommoSubdomain}.kommo.com/api/v4/contacts?query=${encodeURIComponent(oldUsername)}&limit=250`;
+
+
           const searchResponse =
             await fetch(
-
-              `${kommoBaseUrl}/contacts?query=${encodeURIComponent(oldUsername)}&limit=250`,
-
+              searchUrl,
               {
+
                 method:
                   "GET",
 
-                headers:
-                  authHeaders
-              }
+                headers: {
 
+                  Authorization:
+                    `Bearer ${kommoAccessToken}`,
+
+                  Accept:
+                    "application/json"
+
+                }
+
+              }
             );
 
 
@@ -472,325 +461,193 @@ export default async function handler(
             kommoResult.error =
               `Kommo devolvió ${searchResponse.status} al buscar el contacto.`;
 
+          } else {
 
-            return res.status(502).json({
-              ok: false,
-              error:
-                "No se pudo sincronizar el nombre con Kommo.",
-              kommo:
-                kommoResult
-            });
-
-          }
+            let searchData =
+              null;
 
 
-          let searchData =
-            null;
+            try {
+
+              searchData =
+                searchText
+                  ? JSON.parse(
+                      searchText
+                    )
+                  : null;
+
+            } catch (_) {
+
+              searchData =
+                null;
+
+            }
 
 
-          try {
-
-            searchData =
-              searchText
-                ? JSON.parse(
-                    searchText
-                  )
-                : null;
-
-          } catch (
-            parseError
-          ) {
-
-            console.error(
-              "Kommo SEARCH JSON:",
-              parseError
-            );
-
-
-            kommoResult.error =
-              "Kommo respondió con datos inválidos al buscar el contacto.";
-
-
-            return res.status(502).json({
-              ok: false,
-              error:
-                "Kommo respondió con un formato inesperado.",
-              kommo:
-                kommoResult
-            });
-
-          }
-
-
-          const contacts =
-            searchData &&
-            searchData._embedded &&
-            Array.isArray(
-              searchData._embedded.contacts
-            )
-              ? searchData
+            const contacts =
+              searchData &&
+              searchData._embedded &&
+              Array.isArray(
+                searchData
                   ._embedded
                   .contacts
-              : [];
+              )
+                ? searchData
+                    ._embedded
+                    .contacts
+                : [];
 
 
-          const oldUsernameLower =
-            oldUsername
-              .trim()
-              .toLowerCase();
+            /*
+             * -------------------------------------------------
+             * BUSCAR COINCIDENCIA EXACTA
+             * -------------------------------------------------
+             */
+
+            const exactContact =
+              contacts.find(
+                contact =>
+                  String(
+                    contact.name ||
+                    ""
+                  ).trim().toLowerCase() ===
+                  oldUsername.toLowerCase()
+              );
 
 
-          /*
-           * -------------------------------------------------
-           * SOLO COINCIDENCIA EXACTA
-           * -------------------------------------------------
-           */
+            /*
+             * -------------------------------------------------
+             * CONTACTO ENCONTRADO
+             * -------------------------------------------------
+             */
 
-          const exactContact =
-            contacts.find(
-              contact =>
-                String(
-                  contact.name ||
-                  ""
+            const contact =
+              exactContact ||
+              contacts[0] ||
+              null;
+
+
+            if (
+              !contact
+            ) {
+
+              kommoResult.skipped =
+                true;
+
+
+              kommoResult.error =
+                `No se encontró en Kommo un contacto con el nombre "${oldUsername}".`;
+
+
+              console.warn(
+                "Kommo:",
+                kommoResult.error
+              );
+
+            } else {
+
+              const contactId =
+                Number(
+                  contact.id
+                );
+
+
+              if (
+                !Number.isFinite(
+                  contactId
                 )
-                  .trim()
-                  .toLowerCase() ===
-                oldUsernameLower
-            );
+              ) {
+
+                kommoResult.error =
+                  "El contacto encontrado en Kommo no tiene un ID válido.";
+
+              } else {
+
+                /*
+                 * -------------------------------------------------
+                 * ACTUALIZAR NOMBRE EN KOMMO
+                 * -------------------------------------------------
+                 */
+
+                const updateUrl =
+                  `https://${kommoSubdomain}.kommo.com/api/v4/contacts/${contactId}`;
 
 
-          if (
-            !exactContact
-          ) {
+                const updateResponse =
+                  await fetch(
+                    updateUrl,
+                    {
 
-            kommoResult.error =
-              `No se encontró en Kommo un contacto cuyo nombre sea exactamente "${oldUsername}".`;
+                      method:
+                        "PATCH",
 
+                      headers: {
 
-            console.warn(
-              "Kommo:",
-              kommoResult.error
-            );
+                        Authorization:
+                          `Bearer ${kommoAccessToken}`,
 
+                        Accept:
+                          "application/json",
 
-            return res.status(404).json({
-              ok: false,
-              error:
-                "No se encontró el contacto correspondiente en Kommo.",
-              kommo:
-                kommoResult
-            });
+                        "Content-Type":
+                          "application/json"
 
-          }
+                      },
 
+                      body:
+                        JSON.stringify({
 
-          const contactId =
-            Number(
-              exactContact.id
-            );
+                          name:
+                            cleanUsername
 
+                        })
 
-          if (
-            !Number.isFinite(
-              contactId
-            )
-          ) {
-
-            kommoResult.error =
-              "El contacto encontrado en Kommo no tiene un ID válido.";
+                    }
+                  );
 
 
-            return res.status(502).json({
-              ok: false,
-              error:
-                "El contacto encontrado en Kommo no tiene un ID válido.",
-              kommo:
-                kommoResult
-            });
-
-          }
+                const updateText =
+                  await updateResponse.text();
 
 
-          kommoResult.contact_id =
-            contactId;
+                if (
+                  !updateResponse.ok
+                ) {
+
+                  console.error(
+                    "Kommo UPDATE:",
+                    updateResponse.status,
+                    updateText
+                  );
 
 
-          /*
-           * -------------------------------------------------
-           * ACTUALIZAR NOMBRE DEL CONTACTO
-           * -------------------------------------------------
-           */
+                  kommoResult.error =
+                    `Kommo devolvió ${updateResponse.status} al actualizar el contacto.`;
 
-          const updateResponse =
-            await fetch(
+                } else {
 
-              `${kommoBaseUrl}/contacts/${contactId}`,
+                  kommoResult.updated =
+                    true;
 
-              {
-                method:
-                  "PATCH",
+                  kommoResult.contact_id =
+                    contactId;
 
-                headers: {
 
-                  ...authHeaders,
+                  console.log(
+                    "✅ Kommo actualizado:",
+                    contactId,
+                    oldUsername,
+                    "→",
+                    cleanUsername
+                  );
 
-                  "Content-Type":
-                    "application/json"
-
-                },
-
-                body:
-                  JSON.stringify({
-
-                    name:
-                      cleanUsername
-
-                  })
+                }
 
               }
 
-            );
-
-
-          const updateText =
-            await updateResponse.text();
-
-
-          if (
-            !updateResponse.ok
-          ) {
-
-            console.error(
-              "Kommo UPDATE:",
-              updateResponse.status,
-              updateText
-            );
-
-
-            kommoResult.error =
-              `Kommo devolvió ${updateResponse.status} al actualizar el contacto.`;
-
-
-            return res.status(502).json({
-              ok: false,
-              error:
-                "Kommo encontró el contacto pero rechazó el cambio de nombre.",
-              kommo:
-                kommoResult
-            });
+            }
 
           }
-
-
-          /*
-           * -------------------------------------------------
-           * VERIFICAR CAMBIO EN KOMMO
-           * -------------------------------------------------
-           */
-
-          const verifyResponse =
-            await fetch(
-
-              `${kommoBaseUrl}/contacts/${contactId}`,
-
-              {
-                method:
-                  "GET",
-
-                headers:
-                  authHeaders
-              }
-
-            );
-
-
-          const verifyText =
-            await verifyResponse.text();
-
-
-          if (
-            !verifyResponse.ok
-          ) {
-
-            console.error(
-              "Kommo VERIFY:",
-              verifyResponse.status,
-              verifyText
-            );
-
-
-            kommoResult.error =
-              `El nombre fue enviado a Kommo, pero no se pudo verificar (${verifyResponse.status}).`;
-
-
-            return res.status(502).json({
-              ok: false,
-              error:
-                "No se pudo verificar el cambio de nombre en Kommo.",
-              kommo:
-                kommoResult
-            });
-
-          }
-
-
-          let verifyData =
-            null;
-
-
-          try {
-
-            verifyData =
-              verifyText
-                ? JSON.parse(
-                    verifyText
-                  )
-                : null;
-
-          } catch (_) {}
-
-
-          const verifiedName =
-            String(
-              verifyData?.name ||
-              ""
-            ).trim();
-
-
-          if (
-            verifiedName
-              .toLowerCase() !==
-            cleanUsername
-              .toLowerCase()
-          ) {
-
-            kommoResult.error =
-              `Kommo no devolvió el nombre esperado. Recibido: "${verifiedName}".`;
-
-
-            return res.status(502).json({
-              ok: false,
-              error:
-                "El cambio no quedó confirmado en Kommo.",
-              kommo:
-                kommoResult
-            });
-
-          }
-
-
-          kommoResult.updated =
-            true;
-
-
-          console.log(
-            "✅ KOMMO SINCRONIZADO:",
-            contactId,
-            oldUsername,
-            "→",
-            cleanUsername
-          );
-
 
         } catch (
           kommoError
@@ -806,14 +663,25 @@ export default async function handler(
             kommoError.message ||
             "Error comunicando con Kommo.";
 
+        }
 
-          return res.status(502).json({
-            ok: false,
-            error:
-              "No se pudo sincronizar el nombre con Kommo.",
-            kommo:
-              kommoResult
-          });
+      } else {
+
+        kommoResult.skipped =
+          true;
+
+
+        if (
+          !oldUsername
+        ) {
+
+          kommoResult.error =
+            "El cliente no tenía username anterior.";
+
+        } else {
+
+          kommoResult.error =
+            "Falta configurar KOMMO_SUBDOMAIN o KOMMO_ACCESS_TOKEN.";
 
         }
 
