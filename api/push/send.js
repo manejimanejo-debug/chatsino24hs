@@ -1,11 +1,9 @@
 import webpush from "web-push";
 
-
 export default async function handler(
   req,
   res
 ) {
-
   res.setHeader(
     "Access-Control-Allow-Origin",
     "*"
@@ -18,37 +16,25 @@ export default async function handler(
 
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, X-Push-Secret"
+    "Content-Type, X-Push-Secret, X-Kommo-Extension-Token"
   );
-
 
   if (
     req.method === "OPTIONS"
   ) {
-
     return res
       .status(200)
       .end();
-
   }
-
 
   if (
     req.method !== "POST"
   ) {
-
     return res.status(405).json({
-
-      ok:
-        false,
-
-      error:
-        "Method not allowed"
-
+      ok: false,
+      error: "Method not allowed"
     });
-
   }
-
 
   try {
 
@@ -58,30 +44,35 @@ export default async function handler(
      * =====================================================
      */
 
-    const secret =
+    const pushSecret =
       req.headers[
         "x-push-secret"
       ];
 
+    const kommoExtensionToken =
+      req.headers[
+        "x-kommo-extension-token"
+      ];
+
+    const validPushSecret =
+      !!pushSecret &&
+      pushSecret ===
+        process.env.PUSH_ADMIN_SECRET;
+
+    const validKommoToken =
+      !!kommoExtensionToken &&
+      kommoExtensionToken ===
+        process.env.KOMMO_EXTENSION_TOKEN;
 
     if (
-      !secret ||
-      secret !==
-        process.env.PUSH_ADMIN_SECRET
+      !validPushSecret &&
+      !validKommoToken
     ) {
-
       return res.status(401).json({
-
-        ok:
-          false,
-
-        error:
-          "Unauthorized"
-
+        ok: false,
+        error: "Unauthorized"
       });
-
     }
-
 
     /*
      * =====================================================
@@ -92,44 +83,28 @@ export default async function handler(
     const vapidPrivateKey =
       process.env.VAPID_PRIVATE_KEY;
 
-
     const vapidPublicKey =
       process.env.VAPID_PUBLIC_KEY;
 
-
     const vapidSubject =
       process.env.VAPID_SUBJECT;
-
 
     if (
       !vapidPrivateKey ||
       !vapidPublicKey ||
       !vapidSubject
     ) {
-
       return res.status(500).json({
-
-        ok:
-          false,
-
-        error:
-          "VAPID no configurado"
-
+        ok: false,
+        error: "VAPID no configurado"
       });
-
     }
 
-
     webpush.setVapidDetails(
-
       vapidSubject,
-
       vapidPublicKey,
-
       vapidPrivateKey
-
     );
-
 
     /*
      * =====================================================
@@ -158,12 +133,10 @@ export default async function handler(
     } =
       req.body || {};
 
-
     const cleanClientId =
       String(
         client_id || ""
       ).trim();
-
 
     const cleanUsername =
       String(
@@ -175,7 +148,6 @@ export default async function handler(
         )
         .trim();
 
-
     /*
      * =====================================================
      * SUPABASE
@@ -185,31 +157,20 @@ export default async function handler(
     const supabaseUrl =
       process.env.SUPABASE_URL;
 
-
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 
     if (
       !supabaseUrl ||
       !supabaseKey
     ) {
-
       return res.status(500).json({
-
-        ok:
-          false,
-
-        error:
-          "Supabase no configurado"
-
+        ok: false,
+        error: "Supabase no configurado"
       });
-
     }
 
-
     const supabaseHeaders = {
-
       apikey:
         supabaseKey,
 
@@ -218,9 +179,7 @@ export default async function handler(
 
       "Content-Type":
         "application/json"
-
     };
-
 
     /*
      * =====================================================
@@ -238,7 +197,6 @@ export default async function handler(
     let targetClientId =
       cleanClientId;
 
-
     if (
       !targetClientId &&
       cleanUsername
@@ -246,51 +204,29 @@ export default async function handler(
 
       const customerResponse =
         await fetch(
-
           `${supabaseUrl}/rest/v1/customers?select=id,client_id,username&username=ilike.${encodeURIComponent(cleanUsername)}&limit=1`,
-
           {
-
-            method:
-              "GET",
-
-            headers:
-              supabaseHeaders
-
+            method: "GET",
+            headers: supabaseHeaders
           }
-
         );
-
 
       const customerText =
         await customerResponse.text();
 
-
       if (
         !customerResponse.ok
       ) {
-
         console.error(
-
           "Supabase customer username:",
-
           customerText
-
         );
 
-
         return res.status(500).json({
-
-          ok:
-            false,
-
-          error:
-            "Error buscando el usuario"
-
+          ok: false,
+          error: "Error buscando el usuario"
         });
-
       }
-
 
       const customers =
         customerText
@@ -299,24 +235,16 @@ export default async function handler(
             )
           : [];
 
-
       if (
         !Array.isArray(customers) ||
         customers.length === 0
       ) {
-
         return res.status(404).json({
-
-          ok:
-            false,
-
+          ok: false,
           error:
             `No se encontró el usuario "${cleanUsername}"`
-
         });
-
       }
-
 
       targetClientId =
         String(
@@ -324,25 +252,16 @@ export default async function handler(
           ""
         ).trim();
 
-
       if (
         !targetClientId
       ) {
-
         return res.status(404).json({
-
-          ok:
-            false,
-
+          ok: false,
           error:
             "El usuario encontrado no tiene client_id asociado."
-
         });
-
       }
-
     }
-
 
     /*
      * =====================================================
@@ -353,19 +272,12 @@ export default async function handler(
     if (
       !targetClientId
     ) {
-
       return res.status(400).json({
-
-        ok:
-          false,
-
+        ok: false,
         error:
           "Debés enviar client_id o username"
-
       });
-
     }
-
 
     /*
      * =====================================================
@@ -375,51 +287,30 @@ export default async function handler(
 
     const subscriptionsResponse =
       await fetch(
-
         `${supabaseUrl}/rest/v1/push_subscriptions?select=id,client_id,endpoint,p256dh,auth&client_id=eq.${encodeURIComponent(targetClientId)}`,
-
         {
-
-          method:
-            "GET",
-
-          headers:
-            supabaseHeaders
-
+          method: "GET",
+          headers: supabaseHeaders
         }
-
       );
-
 
     const subscriptionsText =
       await subscriptionsResponse.text();
 
-
     if (
       !subscriptionsResponse.ok
     ) {
-
       console.error(
-
         "Supabase subscriptions:",
-
         subscriptionsText
-
       );
 
-
       return res.status(500).json({
-
-        ok:
-          false,
-
+        ok: false,
         error:
           "Error consultando suscripciones"
-
       });
-
     }
-
 
     const subscriptions =
       subscriptionsText
@@ -428,24 +319,16 @@ export default async function handler(
           )
         : [];
 
-
     if (
       !Array.isArray(subscriptions) ||
       subscriptions.length === 0
     ) {
-
       return res.status(404).json({
-
-        ok:
-          false,
-
+        ok: false,
         error:
           "Este cliente no tiene notificaciones activas."
-
       });
-
     }
-
 
     /*
      * =====================================================
@@ -454,7 +337,6 @@ export default async function handler(
      */
 
     const payloadData = {
-
       title:
         title ||
         "Open 24hs",
@@ -466,9 +348,7 @@ export default async function handler(
       url:
         url ||
         "https://chatsino24hs.vercel.app"
-
     };
-
 
     /*
      * Imagen opcional.
@@ -477,12 +357,9 @@ export default async function handler(
     if (
       image
     ) {
-
       payloadData.image =
         image;
-
     }
-
 
     /*
      * Icono opcional.
@@ -491,33 +368,26 @@ export default async function handler(
     if (
       icon
     ) {
-
       payloadData.icon =
         icon;
 
       payloadData.badge =
         icon;
-
     }
-
 
     const payload =
       JSON.stringify(
         payloadData
       );
 
-
     let sent =
       0;
-
 
     let failed =
       0;
 
-
     let removed =
       0;
-
 
     /*
      * =====================================================
@@ -531,52 +401,38 @@ export default async function handler(
     ) {
 
       const pushSubscription = {
-
         endpoint:
           row.endpoint,
 
         keys: {
-
           p256dh:
             row.p256dh,
 
           auth:
             row.auth
-
         }
-
       };
-
 
       try {
 
         await webpush.sendNotification(
-
           pushSubscription,
-
           payload
-
         );
-
 
         sent++;
 
-
-      } catch (error) {
+      } catch (
+        error
+      ) {
 
         failed++;
 
-
         console.error(
-
           "Error enviando Push:",
-
           error.statusCode,
-
           error.body
-
         );
-
 
         /*
          * 404 / 410 =
@@ -586,38 +442,25 @@ export default async function handler(
          */
 
         if (
-          error.statusCode ===
-            404 ||
-          error.statusCode ===
-            410
+          error.statusCode === 404 ||
+          error.statusCode === 410
         ) {
 
           try {
 
             const deleteResponse =
               await fetch(
-
                 `${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${encodeURIComponent(row.id)}`,
-
                 {
-
-                  method:
-                    "DELETE",
-
-                  headers:
-                    supabaseHeaders
-
+                  method: "DELETE",
+                  headers: supabaseHeaders
                 }
-
               );
-
 
             if (
               deleteResponse.ok
             ) {
-
               removed++;
-
             }
 
           } catch (
@@ -625,21 +468,13 @@ export default async function handler(
           ) {
 
             console.error(
-
               "Error eliminando suscripción inválida:",
-
               deleteError
-
             );
-
           }
-
         }
-
       }
-
     }
-
 
     /*
      * =====================================================
@@ -658,21 +493,12 @@ export default async function handler(
 
         const remainingResponse =
           await fetch(
-
             `${supabaseUrl}/rest/v1/push_subscriptions?select=id&client_id=eq.${encodeURIComponent(targetClientId)}&limit=1`,
-
             {
-
-              method:
-                "GET",
-
-              headers:
-                supabaseHeaders
-
+              method: "GET",
+              headers: supabaseHeaders
             }
-
           );
-
 
         if (
           remainingResponse.ok
@@ -680,7 +506,6 @@ export default async function handler(
 
           const remaining =
             await remainingResponse.json();
-
 
           if (
             !Array.isArray(
@@ -690,34 +515,22 @@ export default async function handler(
           ) {
 
             await fetch(
-
               `${supabaseUrl}/rest/v1/customers?client_id=eq.${encodeURIComponent(targetClientId)}`,
-
               {
-
-                method:
-                  "PATCH",
-
-                headers:
-                  supabaseHeaders,
+                method: "PATCH",
+                headers: supabaseHeaders,
 
                 body:
                   JSON.stringify({
-
                     push_active:
                       false,
 
                     updated_at:
                       new Date().toISOString()
-
                   })
-
               }
-
             );
-
           }
-
         }
 
       } catch (
@@ -725,17 +538,11 @@ export default async function handler(
       ) {
 
         console.error(
-
           "Error actualizando push_active:",
-
           statusError
-
         );
-
       }
-
     }
-
 
     /*
      * =====================================================
@@ -766,28 +573,19 @@ export default async function handler(
 
     });
 
-
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     console.error(
-
       "Push error:",
-
       error
-
     );
 
-
     return res.status(500).json({
-
-      ok:
-        false,
-
+      ok: false,
       error:
         "Internal server error"
-
     });
-
   }
-
 }
